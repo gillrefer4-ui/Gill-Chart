@@ -35,10 +35,10 @@
       }
       .brand { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; letter-spacing: -.03em; }
       .brand-mark {
-        width: 36px; height: 36px; flex: 0 0 auto;
+        width: 50px; height: 40px; flex: 0 0 auto;
         border: 1px solid #293d47; border-radius: 10px; background: #121b20;
       }
-      .brand-mark text { font-family: inherit; font-size: 31px; font-weight: 850; }
+      .brand-mark text { font-family: inherit; font-size: 27px; font-weight: 850; }
       .brand span:last-child { color: var(--muted); font-weight: 500; }
       .local-badge {
         display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px;
@@ -128,7 +128,8 @@
       @media (max-width: 600px) {
         .shell { padding: 0 18px 36px; }
         header { height: 66px; }
-        .brand { gap: 9px; font-size: 13px; }
+        .brand { gap: 7px; font-size: 12px; }
+        .brand-mark { width: 42px; height: 34px; }
         .local-badge { padding: 7px 9px; font-size: 10px; }
         main { padding-top: 46px; }
         .intro { margin-bottom: 26px; }
@@ -146,16 +147,21 @@
     <div class="shell">
       <header>
         <div class="brand">
-          <svg class="brand-mark" viewBox="0 0 40 40" role="img" aria-label="Gill Chart logo">
+          <svg class="brand-mark" viewBox="0 0 54 40" role="img" aria-label="Gill Chart logo with forex candlesticks">
             <defs>
               <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stop-color="#168bff"/>
                 <stop offset="1" stop-color="#19d8e8"/>
               </linearGradient>
             </defs>
-            <text x="2" y="33" fill="url(#brand-gradient)">G</text>
-            <rect x="28" y="2" width="7" height="7" rx="1.5" fill="#19d8e8"/>
-            <rect x="34" y="11" width="4" height="4" rx="1" fill="#168bff"/>
+            <text x="0" y="31" fill="url(#brand-gradient)">G</text>
+            <text x="16" y="31" fill="url(#brand-gradient)">C</text>
+            <rect x="41" y="1" width="7" height="7" rx="1.5" fill="#19d8e8"/>
+            <rect x="48" y="9" width="4" height="4" rx="1" fill="#168bff"/>
+            <path d="M39 20v16m6-20v20m6-12v12" stroke="url(#brand-gradient)" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="37" y="25" width="4" height="5" rx="1" fill="#168bff"/>
+            <rect x="43" y="24" width="4" height="7" rx="1" fill="#19d8e8"/>
+            <rect x="49" y="28" width="4" height="5" rx="1" fill="#168bff"/>
           </svg>
           <span>Gill Chart <span>/ Gill Development</span></span>
         </div>
