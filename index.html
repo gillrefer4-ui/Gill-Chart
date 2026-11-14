@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101311">
-    <meta name="description" content="Gill Chart is a local workspace for preparing MT5 gold chart images for analysis.">
+    <meta name="description" content="Gill Chart scans MT5 chart images locally and annotates educational entry, take-profit, and stop-loss levels.">
     <title>Gill Chart — MT5 gold workspace</title>
     <style>
       :root {
@@ -101,6 +101,13 @@
       .crop-result.visible { display: block; }
       .preview-image-wrap { min-height: 190px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #101311; }
       .preview-image { max-height: 400px; }
+      .annotated-image { position: relative; display: inline-grid; max-width: 100%; }
+      .analysis-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+      .analysis-overlay text { font: 700 14px Inter, ui-sans-serif, system-ui, sans-serif; paint-order: stroke; stroke: #101311; stroke-width: 4px; stroke-linejoin: round; }
+      .image-analysis-controls { display: flex; justify-content: flex-end; margin-top: 16px; }
+      .image-analysis-controls .button { white-space: nowrap; }
+      .image-analysis-report { margin-top: 12px; }
+      .image-analysis-report p { margin: 3px 0; }
       .crop-result-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
       .crop-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
       .preview-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
@@ -148,6 +155,12 @@
       .analysis-form .button { grid-column: 1 / -1; justify-self: start; }
       .analysis-note { grid-column: 1 / -1; margin: 0; color: #929b94; font-size: 11px; line-height: 1.6; }
       .analysis-error { grid-column: 1 / -1; min-height: 16px; margin: 0; color: #ffad9e; font-size: 12px; }
+      .swing-group {
+        grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 9px;
+      }
+      .swing-group legend { padding: 0 6px; color: #e2e7e2; font-size: 12px; font-weight: 700; }
+      .swing-group .field input { min-width: 0; }
       .analysis-report {
         margin-top: 12px; padding: 16px; border: 1px solid #29444a; border-radius: 10px;
         background: #121b1c; color: #dce5e1; font-size: 13px; line-height: 1.8;
@@ -173,6 +186,9 @@
         .analysis-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .analysis-form .field:first-child { grid-column: 1 / -1; }
         .analysis-form .button { width: 100%; }
+        .swing-group { grid-template-columns: 1fr; }
+        .image-analysis-controls { display: block; }
+        .image-analysis-controls .button { width: 100%; }
         .history { margin-top: 42px; }
         footer { margin-top: 48px; }
       }
@@ -207,7 +223,7 @@
         <section class="intro">
           <div class="eyebrow">Gill Development · MT5 gold charts</div>
           <h1>Bring your gold chart<br>into focus.</h1>
-          <p>Prepare an MT5 XAUUSD chart and read its candles, current-price line, and axes using Gill Chart rules. Images stay in this browser; readings in the worksheet are entered by you.</p>
+          <p>Upload an MT5 XAUUSD chart to scan its candles and market structure with Gill Chart rules. Review the image annotations before using any levels.</p>
         </section>
 
         <section class="workspace" aria-label="Chart image upload">
@@ -241,8 +257,20 @@
                 </div>
               </div>
               <div class="crop-result" id="cropResult">
-                <div class="preview-image-wrap"><img class="preview-image" id="previewImage" alt="Cropped chart, ready for analysis"></div>
-                <p class="crop-result-note">Focused chart image ready. The website does not automatically recognize chart values or generate trade signals.</p>
+                <div class="preview-image-wrap">
+                  <div class="annotated-image">
+                    <img class="preview-image" id="previewImage" alt="Cropped chart, ready for analysis">
+                    <svg class="analysis-overlay" id="analysisOverlay" aria-hidden="true"></svg>
+                  </div>
+                </div>
+                <p class="crop-result-note">A fixed set of rules scans the candles, current-price line, and chart axes in this browser. No AI or external service is used. Drawn levels are provisional; confirm every reading against the image.</p>
+                <div class="image-analysis-controls">
+                  <button class="button button-primary" id="scanChartButton" type="button">Scan chart</button>
+                </div>
+                <div class="analysis-report image-analysis-report" id="imageAnalysisReport" aria-live="polite" hidden>
+                  <h3>Image scan</h3>
+                  <div id="imageAnalysisOutput"></div>
+                </div>
                 <div class="crop-actions">
                   <button class="button button-secondary" id="recropButton" type="button">Adjust crop</button>
                 </div>
@@ -262,12 +290,12 @@
 
         <section class="learning" aria-labelledby="rulesTitle">
           <h2 id="rulesTitle">Gill Chart rules</h2>
-          <p class="learning-intro">The lessons you have taught so far are the framework for this workspace. No chart values are inferred when they are not readable.</p>
+          <p class="learning-intro">The lessons you have taught so far are implemented as local image-processing rules. The scan considers only candlesticks, the current-price line, and the X/Y axes; verify every result against the chart.</p>
           <details class="lesson">
             <summary>Lesson 01 · Forex and XAUUSD</summary>
             <div class="lesson-content">
               <p>Forex is the global, decentralized market for trading currencies and metals against each other, open 24 hours a day, five days a week, through brokers such as MT5 rather than one central exchange. Instruments are quoted BASE/QUOTE: the price is how much quote currency buys one unit of base currency. In EUR/USD, EUR is the base and USD is the quote. XAUUSD is a metal pair, not a currency pair: its price is the USD amount for one troy ounce of gold.</p>
-              <p><strong>Gill Chart does not trade.</strong> It analyzes price structure and, only when a setup is clear, reports direction, entry, stop loss, take profit, and reasoning. Low probability means <strong>NO TRADE</strong>; predictions are never certain.</p>
+              <p><strong>Gill Chart does not trade.</strong> The local rules can draw provisional visual entry, stop-loss (SL), and take-profit (TP) levels when the candle structure and price-line checks agree. A single chart image cannot confirm higher-timeframe structure. Unclear readings mean <strong>NO TRADE</strong>; predictions are never certain.</p>
               <ul>
                 <li>Bid is the price the broker will buy from you; ask is the price the broker will sell to you. Spread is ask minus bid and is the cost of entering; gold's spread is wider than EURUSD's.</li>
                 <li>Gill Chart's XAUUSD convention: 1.00 price move = 100 points; 0.10 = 10 points; 0.01 = 1 point.</li>
@@ -293,6 +321,65 @@
               </ul>
             </div>
           </details>
+          <details class="lesson">
+            <summary>Lesson 03 · Market structure</summary>
+            <div class="lesson-content">
+              <p>Read structure before considering a trade. Use swing highs and lows, not every small candle move: higher highs with higher lows indicate an uptrend; lower highs with lower lows indicate a downtrend. When neither sequence is clear, treat it as range/unclear and stay out.</p>
+              <ul>
+                <li>Compare four swing highs and four swing lows in chronological order. A valid trend requires each of the three high-to-high and low-to-low comparisons to confirm the same direction. Mixed sequences are not a confirmed trend.</li>
+                <li>Classify the higher timeframe first, then the chart timeframe. A lower-timeframe trade against the higher-timeframe bias is counter-trend and riskier.</li>
+                <li>Impulse is the strong move in the trend direction; correction is the smaller move against it. Do not chase an extended impulse. The phase must be identified from the chart.</li>
+                <li>BOS is only confirmed when a fully closed candle closes beyond the prior swing high/low in the trend direction. CHoCH is a close beyond the prior higher low in an uptrend or lower high in a downtrend. A wick alone does not count.</li>
+                <li>With-trend trades require structure agreement and a confirming BOS after a correction. Counter-trend trades require a confirming BOS, are lower probability, and call for early profit-taking and break-even protection. A range, unclear structure, or missing confirmation means NO TRADE.</li>
+                <li>Use the next swing high/low as TP1; consider TP2 only after continuation BOS and higher-timeframe agreement. Do not extend a lower-timeframe move past the higher-timeframe swing level.</li>
+              </ul>
+              <p>The image scan estimates swing points from visible candle shapes. Image recognition can be wrong; verify its structure and every marked level before considering a trade.</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="analysis" aria-labelledby="structureTitle">
+          <h2 id="structureTitle">Market-structure analyzer</h2>
+          <p class="analysis-intro">Optional manual market-structure worksheet. For image-based analysis, use “Scan chart” in the cropped-image preview above; the built-in rules scan the chart image and annotate any qualifying setup.</p>
+          <form class="analysis-form" id="structureForm">
+            <div class="field">
+              <label for="higherTimeframe">Higher timeframe</label>
+              <select id="higherTimeframe" required>
+                <option value="">Select timeframe</option><option>D1</option><option>H4</option><option>H1</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="structureTimeframe">Chart timeframe</label>
+              <select id="structureTimeframe" required>
+                <option value="">Select timeframe</option><option>H1</option><option>M30</option><option>M15</option><option>M5</option><option>M1</option>
+              </select>
+            </div>
+            <div class="field"><label for="structureCurrentPrice">Current price (price line / Y-axis)</label><input id="structureCurrentPrice" type="number" step="any" inputmode="decimal" required></div>
+            <div class="field"><label for="structureClose">Last closed candle close</label><input id="structureClose" type="number" step="any" inputmode="decimal" required></div>
+            <div class="field">
+              <label for="structurePhase">Current phase</label>
+              <select id="structurePhase" required>
+                <option value="">Select phase</option><option>Impulse</option><option>Correction</option>
+              </select>
+            </div>
+            <fieldset class="swing-group">
+              <legend>Higher-timeframe swings (oldest to newest)</legend>
+              <div class="field"><label for="higherSwingHighs">Last 4 swing highs (separate with semicolons)</label><input id="higherSwingHighs" type="text" inputmode="decimal" placeholder="3300; 3310; 3320; 3330" required></div>
+              <div class="field"><label for="higherSwingLows">Last 4 swing lows (separate with semicolons)</label><input id="higherSwingLows" type="text" inputmode="decimal" placeholder="3280; 3290; 3300; 3310" required></div>
+            </fieldset>
+            <fieldset class="swing-group">
+              <legend>Chart-timeframe swings (oldest to newest)</legend>
+              <div class="field"><label for="chartSwingHighs">Last 4 swing highs (separate with semicolons)</label><input id="chartSwingHighs" type="text" inputmode="decimal" placeholder="3300; 3305; 3310; 3315" required></div>
+              <div class="field"><label for="chartSwingLows">Last 4 swing lows (separate with semicolons)</label><input id="chartSwingLows" type="text" inputmode="decimal" placeholder="3290; 3295; 3300; 3305" required></div>
+            </fieldset>
+            <p class="analysis-note">Enter four confirmed swing prices in chronological order for each timeframe. BOS/CHoCH uses the last fully closed candle, never a wick. This worksheet reports structure and directional guidance; use the image scan above for visual annotations.</p>
+            <p class="analysis-error" id="structureError" role="alert"></p>
+            <button class="button button-primary" type="submit">Analyze market structure</button>
+          </form>
+          <div class="analysis-report" id="structureReport" aria-live="polite" hidden>
+            <h3>Structure analysis</h3>
+            <div id="structureOutput"></div>
+          </div>
         </section>
 
         <section class="analysis" aria-labelledby="worksheetTitle">
@@ -330,7 +417,7 @@
           <div class="history-list" id="historyList"><div class="empty-state">Your uploaded charts will appear here.</div></div>
         </section>
       </main>
-      <footer>A Gill Development product.<br>Chart readings are entered manually; automated image analysis and trade levels are not connected. Trading involves risk; this workspace does not provide financial advice.</footer>
+      <footer>A Gill Development product.<br>All image analysis uses built-in browser rules; images are not sent to an AI or external API. Visual scans can misread charts and are educational, not financial advice or guaranteed predictions.</footer>
     </div>
 
     <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
@@ -444,6 +531,341 @@
           status.textContent = message;
         }
 
+        function scanChartImage() {
+          if (!previewImage.complete || !previewImage.naturalWidth || !previewImage.naturalHeight) {
+            throw new Error("Wait for the chart crop to finish loading, then scan it again.");
+          }
+          const maxWidth = 1600;
+          const scale = Math.min(1, maxWidth / previewImage.naturalWidth, maxWidth / previewImage.naturalHeight);
+          const width = Math.max(1, Math.round(previewImage.naturalWidth * scale));
+          const height = Math.max(1, Math.round(previewImage.naturalHeight * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          if (!context) throw new Error("This browser could not scan the chart image.");
+          context.drawImage(previewImage, 0, 0, width, height);
+          const pixels = context.getImageData(0, 0, width, height).data;
+          const xStart = Math.floor(width * 0.025);
+          const xEnd = Math.floor(width * 0.87);
+          const yStart = Math.floor(height * 0.04);
+          const yEnd = Math.floor(height * 0.94);
+          const samplePoints = [
+            [0.08, 0.08], [0.5, 0.08], [0.82, 0.08],
+            [0.08, 0.9], [0.5, 0.9], [0.82, 0.9]
+          ];
+          const luminance = (x, y) => {
+            const offset = (y * width + x) * 4;
+            return (pixels[offset] * 299 + pixels[offset + 1] * 587 + pixels[offset + 2] * 114) / 1000;
+          };
+          const sampleLuminance = samplePoints
+            .map(point => luminance(Math.floor(width * point[0]), Math.floor(height * point[1])))
+            .sort((a, b) => a - b);
+          const backgroundLuminance = sampleLuminance[Math.floor(sampleLuminance.length / 2)];
+          const backgroundIsDark = backgroundLuminance < 128;
+          const isContrastingPixel = (x, y) => {
+            const offset = (y * width + x) * 4;
+            const brightness = (pixels[offset] * 299 + pixels[offset + 1] * 587 + pixels[offset + 2] * 114) / 1000;
+            return backgroundIsDark ? brightness - backgroundLuminance > 48 : backgroundLuminance - brightness > 48;
+          };
+          const countGroups = values => {
+            let groups = 0;
+            let gap = 3;
+            for (const active of values) {
+              if (active) {
+                if (gap > 2) groups += 1;
+                gap = 0;
+              } else {
+                gap += 1;
+              }
+            }
+            return groups;
+          };
+          const yAxisStart = Math.floor(width * 0.87);
+          const yAxisRows = [];
+          for (let y = yStart; y < yEnd; y += 1) {
+            let hits = 0;
+            for (let x = yAxisStart; x < width; x += 1) {
+              if (isContrastingPixel(x, y)) hits += 1;
+            }
+            yAxisRows.push(hits >= 2);
+          }
+          const xAxisColumns = [];
+          for (let x = xStart; x < xEnd; x += 1) {
+            let hits = 0;
+            for (let y = yEnd; y < height; y += 1) {
+              if (isContrastingPixel(x, y)) hits += 1;
+            }
+            xAxisColumns.push(hits >= 2);
+          }
+          const xAxisMarks = countGroups(xAxisColumns);
+          const yAxisMarks = countGroups(yAxisRows);
+          const bucketCount = 20;
+          let currentPriceY = null;
+          let bestLineScore = 0;
+          const lineLeft = Math.floor(width * 0.08);
+          const lineRight = xEnd;
+          for (let y = yStart; y < yEnd; y += 1) {
+            const buckets = new Uint8Array(bucketCount);
+            let lineWeight = 0;
+            let linePixelHits = 0;
+            for (let x = lineLeft; x < lineRight; x += 1) {
+              const offset = (y * width + x) * 4;
+              const red = pixels[offset];
+              const green = pixels[offset + 1];
+              const blue = pixels[offset + 2];
+              const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
+              const isCandleColor = red > green * 1.25 && red > blue * 1.18
+                || green > red * 1.22 && green > blue * 1.08;
+              if (isCandleColor || !isContrastingPixel(x, y)) continue;
+              buckets[Math.min(bucketCount - 1, Math.floor((x - lineLeft) * bucketCount / (lineRight - lineLeft)))] = 1;
+              lineWeight += Math.abs(luminance(x, y) - backgroundLuminance) + Math.min(saturation, 100) * 0.5;
+              linePixelHits += 1;
+            }
+            const coverage = buckets.reduce((sum, hit) => sum + hit, 0) / bucketCount;
+            const pixelCoverage = linePixelHits / (lineRight - lineLeft);
+            const score = coverage >= 0.2 && pixelCoverage >= 0.04 && pixelCoverage <= 0.92
+              ? lineWeight * coverage * (1 - pixelCoverage * 0.35)
+              : 0;
+            if (score > bestLineScore) {
+              bestLineScore = score;
+              currentPriceY = y;
+            }
+          }
+          const mask = new Uint8Array(width * height);
+          for (let y = yStart; y < yEnd; y += 1) {
+            for (let x = xStart; x < xEnd; x += 1) {
+              const offset = (y * width + x) * 4;
+              const red = pixels[offset];
+              const green = pixels[offset + 1];
+              const blue = pixels[offset + 2];
+              const brightness = (red + green + blue) / 3;
+              const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
+              let kind = 0;
+              if (red > 100 && red > green * 1.25 && red > blue * 1.18) kind = 1;
+              else if (green > 100 && green > red * 1.22 && green > blue * 1.08) kind = 2;
+              else if (saturation < 25 && backgroundIsDark && brightness > 205) kind = 3;
+              else if (saturation < 25 && !backgroundIsDark && brightness < 55) kind = 4;
+              mask[y * width + x] = kind;
+            }
+          }
+
+          const activeColumns = [];
+          for (let x = xStart; x < xEnd; x += 1) {
+            let longestRun = 0;
+            let run = 0;
+            let gap = 0;
+            for (let y = yStart; y < yEnd; y += 1) {
+              if (mask[y * width + x]) {
+                run += gap + 1;
+                gap = 0;
+                longestRun = Math.max(longestRun, run);
+              } else if (run && gap < 2) {
+                gap += 1;
+              } else {
+                run = 0;
+                gap = 0;
+              }
+            }
+            activeColumns[x] = longestRun >= Math.max(7, height * 0.012);
+          }
+
+          const candles = [];
+          for (let x = xStart; x < xEnd;) {
+            if (!activeColumns[x]) { x += 1; continue; }
+            const left = x;
+            while (x < xEnd && activeColumns[x]) x += 1;
+            const right = x - 1;
+            if (right - left + 1 > Math.max(18, width * 0.025)) continue;
+            const rowCounts = new Uint16Array(yEnd - yStart);
+            const kinds = [0, 0, 0, 0, 0];
+            let top = yEnd;
+            let bottom = yStart;
+            for (let column = left; column <= right; column += 1) {
+              for (let row = yStart; row < yEnd; row += 1) {
+                const kind = mask[row * width + column];
+                if (!kind) continue;
+                rowCounts[row - yStart] += 1;
+                kinds[kind] += 1;
+                top = Math.min(top, row);
+                bottom = Math.max(bottom, row);
+              }
+            }
+            if (bottom - top < Math.max(7, height * 0.012)) continue;
+            const bodyThreshold = Math.max(2, Math.ceil((right - left + 1) * 0.35));
+            const bodyRows = [];
+            for (let row = top; row <= bottom; row += 1) {
+              if (rowCounts[row - yStart] >= bodyThreshold) bodyRows.push(row);
+            }
+            if (!bodyRows.length) continue;
+            const bullishVotes = kinds[2] + kinds[3];
+            const bearishVotes = kinds[1] + kinds[4];
+            if (!bullishVotes && !bearishVotes) continue;
+            const bullish = bullishVotes > bearishVotes;
+            candles.push({
+              x: (left + right) / 2,
+              top,
+              bottom,
+              open: bullish ? bodyRows[bodyRows.length - 1] : bodyRows[0],
+              close: bullish ? bodyRows[0] : bodyRows[bodyRows.length - 1],
+              bullish
+            });
+          }
+
+          return {
+            candles,
+            width,
+            height,
+            scale,
+            xStart,
+            xEnd,
+            yStart,
+            yEnd,
+            xAxisMarks,
+            yAxisMarks,
+            currentPriceY,
+            highs: [],
+            lows: []
+          };
+        }
+
+        function findImageSwings(candles) {
+          const highs = [];
+          const lows = [];
+          for (let index = 2; index < candles.length - 2; index += 1) {
+            const candle = candles[index];
+            const neighbors = candles.slice(index - 2, index).concat(candles.slice(index + 1, index + 3));
+            if (neighbors.every(item => candle.top < item.top)) highs.push({ index, y: candle.top });
+            if (neighbors.every(item => candle.bottom > item.bottom)) lows.push({ index, y: candle.bottom });
+          }
+          return { highs, lows };
+        }
+
+        function drawImageLevels(scan, levels) {
+          const overlay = document.getElementById("analysisOverlay");
+          const originalWidth = previewImage.naturalWidth;
+          const originalHeight = previewImage.naturalHeight;
+          overlay.replaceChildren();
+          overlay.setAttribute("viewBox", `0 0 ${originalWidth} ${originalHeight}`);
+          if (!levels) return;
+          const svgNamespace = "http://www.w3.org/2000/svg";
+          for (const level of levels) {
+            const y = level.y / scan.scale;
+            const line = document.createElementNS(svgNamespace, "line");
+            line.setAttribute("x1", String(scan.xStart / scan.scale));
+            line.setAttribute("x2", String(scan.xEnd / scan.scale));
+            line.setAttribute("y1", String(y));
+            line.setAttribute("y2", String(y));
+            line.setAttribute("stroke", level.color);
+            line.setAttribute("stroke-width", String(Math.max(2, originalWidth / 500)));
+            line.setAttribute("stroke-dasharray", "10 6");
+            overlay.append(line);
+            const label = document.createElementNS(svgNamespace, "text");
+            label.setAttribute("x", String((scan.xEnd - 8) / scan.scale));
+            label.setAttribute("y", String(Math.max(16, y - 7)));
+            label.setAttribute("fill", level.color);
+            label.setAttribute("text-anchor", "end");
+            label.textContent = level.label;
+            overlay.append(label);
+          }
+        }
+
+        function renderImageScan(scan) {
+          const output = document.getElementById("imageAnalysisOutput");
+          const report = document.getElementById("imageAnalysisReport");
+          const addLine = text => {
+            const paragraph = document.createElement("p");
+            paragraph.textContent = text;
+            output.append(paragraph);
+          };
+          output.replaceChildren();
+          const overlay = document.getElementById("analysisOverlay");
+          overlay.replaceChildren();
+
+          if (scan.candles.length < 12) {
+            addLine(`Only ${scan.candles.length} clear candle-like shapes were detected. Use a tighter crop with visible candles and try again.`);
+            addLine("This local scan works best with distinct red/green or white/black candles on a contrasting chart background.");
+            report.hidden = false;
+            return;
+          }
+
+          const closedCandles = scan.candles.slice(0, -1);
+          const swings = findImageSwings(closedCandles);
+          scan.highs = swings.highs;
+          scan.lows = swings.lows;
+          const lastFourHighs = swings.highs.slice(-4);
+          const lastFourLows = swings.lows.slice(-4);
+          let structure = "Range / unclear";
+          if (lastFourHighs.length === 4 && lastFourLows.length === 4) {
+            const risingHighs = lastFourHighs.every((item, index) => index === 0 || item.y < lastFourHighs[index - 1].y);
+            const risingLows = lastFourLows.every((item, index) => index === 0 || item.y < lastFourLows[index - 1].y);
+            const fallingHighs = lastFourHighs.every((item, index) => index === 0 || item.y > lastFourHighs[index - 1].y);
+            const fallingLows = lastFourLows.every((item, index) => index === 0 || item.y > lastFourLows[index - 1].y);
+            if (risingHighs && risingLows) structure = "Uptrend";
+            else if (fallingHighs && fallingLows) structure = "Downtrend";
+          }
+
+          const lastClosed = closedCandles[closedCandles.length - 1];
+          const priorHigh = swings.highs.filter(item => item.index < closedCandles.length - 3).at(-1);
+          const priorLow = swings.lows.filter(item => item.index < closedCandles.length - 3).at(-1);
+          const priorCandles = closedCandles.slice(-3, -1);
+          const bosUp = structure === "Uptrend" && lastClosed.bullish && priorHigh && lastClosed.close < priorHigh.y;
+          const bosDown = structure === "Downtrend" && !lastClosed.bullish && priorLow && lastClosed.close > priorLow.y;
+          const correctionUp = priorCandles.length === 2 && priorCandles.every(candle => !candle.bullish);
+          const correctionDown = priorCandles.length === 2 && priorCandles.every(candle => candle.bullish);
+          addLine(`Detected ${scan.candles.length} candle-like shapes; ${closedCandles.length} treated as closed and the rightmost candle excluded as possibly still forming.`);
+          addLine(`Estimated chart structure: ${structure}. ${swings.highs.length} swing highs and ${swings.lows.length} swing lows were detected.`);
+          addLine(`Last closed-candle BOS: ${bosUp ? "upward close beyond the prior swing high" : bosDown ? "downward close beyond the prior swing low" : "not confirmed"}.`);
+          addLine(`X-axis: ${scan.xAxisMarks} visible tick/label groups; Y-axis: ${scan.yAxisMarks} visible price-label groups. Axis text is used only as image layout, not OCR'd into prices or timeframe.`);
+          const currentPriceText = scan.currentPriceY === null
+            ? "not confidently detected"
+            : `detected at approximately ${Math.round((scan.currentPriceY - scan.yStart) * 100 / (scan.yEnd - scan.yStart))}% down the visible price scale`;
+          addLine(`Current-price line: ${currentPriceText}. Trade levels are drawn in image coordinates, not numeric prices.`);
+
+          let levels = scan.currentPriceY === null
+            ? []
+            : [{ label: "CURRENT PRICE", y: scan.currentPriceY, color: "#e8edf0" }];
+          if (structure === "Range / unclear") {
+            addLine("NO TRADE: the scan could not confirm four rising or falling swing highs and lows.");
+          } else if (scan.xAxisMarks < 3 || scan.yAxisMarks < 3) {
+            addLine("NO TRADE: the X/Y-axis markings are not clear enough to check chart order and the visible price scale.");
+          } else if (scan.currentPriceY === null) {
+            addLine("NO TRADE: the dashed current-price line could not be separated confidently from candle and grid pixels.");
+          } else if (Math.abs(scan.currentPriceY - lastClosed.close) > scan.height * 0.1) {
+            addLine("NO TRADE: the detected current-price line is too far from the last closed candle to confirm a current setup.");
+          } else if (!bosUp && !bosDown) {
+            addLine("NO TRADE: no close-confirmed BOS was detected after the correction.");
+          } else if (bosUp && !correctionUp || bosDown && !correctionDown) {
+            addLine("NO TRADE: the two candles before the BOS do not show the correction required by the chart rules.");
+          } else {
+            const isLong = bosUp;
+            const entry = lastClosed.close;
+            const stopSwing = (isLong ? swings.lows : swings.highs).filter(item => item.index < closedCandles.length - 3).at(-1);
+            const stopBuffer = Math.max(2, scan.height * 0.003);
+            const stop = stopSwing
+              ? stopSwing.y + (isLong ? stopBuffer : -stopBuffer)
+              : null;
+            const risk = stop === null ? 0 : isLong ? stop - entry : entry - stop;
+            const target = isLong ? entry - 2 * risk : entry + 2 * risk;
+            const validBounds = target >= scan.yStart && target <= scan.yEnd && stop >= scan.yStart && stop <= scan.yEnd;
+            if (!stopSwing || risk <= 0 || !validBounds) {
+              addLine("NO TRADE: the scan could not place a valid stop and illustrative 1:2 target inside the visible chart.");
+            } else {
+              const direction = isLong ? "BUY" : "SELL";
+              levels.push(
+                { label: `ENTRY · ${direction}`, y: entry, color: "#19d8e8" },
+                { label: "SL", y: stop, color: "#ff7666" },
+                { label: "TP · 1:2 projection", y: target, color: "#68e39b" }
+              );
+              addLine(`PROVISIONAL ${direction}: entry at the estimated close of the BOS candle; SL beyond the latest detected opposite swing; TP is an illustrative 1:2 risk projection, not a detected future swing.`);
+              addLine("The X-axis confirms left-to-right candle order and the Y-axis sets relative price position. Numeric axis labels are not OCR'd; verify actual prices and higher-timeframe bias yourself.");
+            }
+          }
+          addLine("No AI or external API is used. This deterministic image scan cannot confirm higher-timeframe structure from a single chart.");
+          drawImageLevels(scan, levels.length ? levels : null);
+          report.hidden = false;
+        }
+
         async function handleFile(file) {
           status.textContent = "";
           if (!file) return;
@@ -464,6 +886,8 @@
           cropButton.disabled = true;
           cropEditor.hidden = false;
           cropResult.classList.remove("visible");
+          document.getElementById("imageAnalysisReport").hidden = true;
+          document.getElementById("analysisOverlay").replaceChildren();
           document.getElementById("previewTitle").textContent = "Frame the chart";
           document.getElementById("cropInstructions").hidden = false;
           currentFile = file;
@@ -594,11 +1018,22 @@
         document.getElementById("changeButton").addEventListener("click", () => input.click());
         document.getElementById("recropButton").addEventListener("click", () => {
           cropResult.classList.remove("visible");
+          document.getElementById("imageAnalysisReport").hidden = true;
+          document.getElementById("analysisOverlay").replaceChildren();
           cropEditor.hidden = false;
           document.getElementById("cropInstructions").hidden = false;
           document.getElementById("previewTitle").textContent = "Adjust the chart crop";
           document.getElementById("imageDimensions").textContent = `${cropImage.naturalWidth} × ${cropImage.naturalHeight} · ${formatSize(currentFile.size)}`;
           cropButton.disabled = !selection;
+        });
+        document.getElementById("scanChartButton").addEventListener("click", () => {
+          status.textContent = "";
+          try {
+            const scan = scanChartImage();
+            renderImageScan(scan);
+          } catch (error) {
+            showError(error instanceof Error ? error.message : "The chart image could not be scanned.");
+          }
         });
         input.addEventListener("change", event => handleFile(event.target.files[0]));
         cameraInput.addEventListener("change", event => handleFile(event.target.files[0]));
@@ -676,6 +1111,127 @@
             `Upper Wick Size: ${formatPrice(upperWick)}`,
             `Lower Wick Size: ${formatPrice(lowerWick)}`,
             `Interpretation: ${interpretation}`
+          ];
+          for (const line of lines) {
+            const paragraph = document.createElement("p");
+            paragraph.textContent = line;
+            output.append(paragraph);
+          }
+          report.hidden = false;
+        });
+
+        document.getElementById("structureForm").addEventListener("submit", event => {
+          event.preventDefault();
+          const errorMessage = document.getElementById("structureError");
+          const report = document.getElementById("structureReport");
+          const form = event.currentTarget;
+          if (!form.reportValidity()) return;
+
+          const higherTimeframe = document.getElementById("higherTimeframe").value;
+          const timeframe = document.getElementById("structureTimeframe").value;
+          const currentPrice = Number(document.getElementById("structureCurrentPrice").value);
+          const close = Number(document.getElementById("structureClose").value);
+          const phase = document.getElementById("structurePhase").value;
+          const parseSwings = id => document.getElementById(id).value
+            .split(";")
+            .map(value => value.trim())
+            .map(value => value === "" ? Number.NaN : Number(value));
+          const higherHighs = parseSwings("higherSwingHighs");
+          const higherLows = parseSwings("higherSwingLows");
+          const chartHighs = parseSwings("chartSwingHighs");
+          const chartLows = parseSwings("chartSwingLows");
+          const timeframeOrder = { MN1: 9, W1: 8, D1: 7, H4: 6, H1: 5, M30: 4, M15: 3, M5: 2, M1: 1 };
+          const swingsAreValid = values => values.length === 4 && values.every(Number.isFinite);
+
+          if (timeframeOrder[higherTimeframe] <= timeframeOrder[timeframe]) {
+            errorMessage.textContent = "Choose a higher timeframe that is larger than the chart timeframe.";
+            report.hidden = true;
+            return;
+          }
+          if (![currentPrice, close].every(Number.isFinite)
+            || !swingsAreValid(higherHighs) || !swingsAreValid(higherLows)
+            || !swingsAreValid(chartHighs) || !swingsAreValid(chartLows)) {
+            errorMessage.textContent = "Enter a valid current price and exactly four numeric swing highs and lows for each timeframe, separated by semicolons.";
+            report.hidden = true;
+            return;
+          }
+
+          errorMessage.textContent = "";
+          const formatPrice = value => new Intl.NumberFormat(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 5
+          }).format(value);
+          const compareSwings = (highs, lows) => {
+            const highChanges = highs.slice(1).map((value, index) => Math.sign(value - highs[index]));
+            const lowChanges = lows.slice(1).map((value, index) => Math.sign(value - lows[index]));
+            const uptrend = highChanges.every(change => change > 0) && lowChanges.every(change => change > 0);
+            const downtrend = highChanges.every(change => change < 0) && lowChanges.every(change => change < 0);
+            const highLabels = highChanges.map(change => change > 0 ? "HH" : change < 0 ? "LH" : "Equal High");
+            const lowLabels = lowChanges.map(change => change > 0 ? "HL" : change < 0 ? "LL" : "Equal Low");
+            return {
+              bias: uptrend ? "Uptrend" : downtrend ? "Downtrend" : "Range / unclear",
+              sequence: `Highs ${highLabels.join(" → ")}; lows ${lowLabels.join(" → ")}`
+            };
+          };
+          const higherStructure = compareSwings(higherHighs, higherLows);
+          const chartStructure = compareSwings(chartHighs, chartLows);
+          let bos = "None confirmed";
+          let choch = "No";
+          if (chartStructure.bias === "Uptrend") {
+            if (close > chartHighs[3]) bos = `Up at ${formatPrice(close)} (body close above ${formatPrice(chartHighs[3])})`;
+            if (close < chartLows[3]) choch = `Yes — down at ${formatPrice(close)} (body close below ${formatPrice(chartLows[3])})`;
+          } else if (chartStructure.bias === "Downtrend") {
+            if (close < chartLows[3]) bos = `Down at ${formatPrice(close)} (body close below ${formatPrice(chartLows[3])})`;
+            if (close > chartHighs[3]) choch = `Yes — up at ${formatPrice(close)} (body close above ${formatPrice(chartHighs[3])})`;
+          } else {
+            bos = "None — no confirmed directional structure";
+            choch = "Not assessed — no confirmed directional structure";
+          }
+
+          const bosDirection = bos.startsWith("Up") ? "Uptrend" : bos.startsWith("Down") ? "Downtrend" : "";
+          let tradeBias = "NO TRADE";
+          let tradeContext = "";
+          let reason = "";
+          if (higherStructure.bias === "Range / unclear") {
+            reason = `Higher-timeframe swings are mixed or equal (${higherStructure.sequence}); there is no clear higher-timeframe bias.`;
+          } else if (chartStructure.bias === "Range / unclear") {
+            reason = `Chart-timeframe swings are mixed or equal (${chartStructure.sequence}); stay out until structure is clear.`;
+          } else if (phase === "Impulse") {
+            reason = "The current phase is an impulse; do not chase it. Wait for a correction and a confirming body-close BOS.";
+          } else if (chartStructure.bias === higherStructure.bias) {
+            if (bosDirection === chartStructure.bias) {
+              tradeBias = chartStructure.bias === "Uptrend" ? "BUY" : "SELL";
+              tradeContext = "With-trend";
+              reason = `Higher and chart timeframe structures agree (${higherStructure.bias}); the chart-timeframe correction has a confirming BOS in the trend direction.`;
+            } else {
+              reason = `Structures agree (${higherStructure.bias}), but no confirming chart-timeframe BOS body close is present after the correction.`;
+            }
+          } else if (bosDirection === chartStructure.bias) {
+            tradeBias = chartStructure.bias === "Uptrend" ? "BUY" : "SELL";
+            tradeContext = "Counter-trend — lower probability";
+            reason = `Chart-timeframe ${chartStructure.bias.toLowerCase()} has a confirming BOS inside a ${higherStructure.bias.toLowerCase()} higher-timeframe structure; treat it as a short correction trade.`;
+          } else {
+            reason = `Chart-timeframe structure opposes the ${higherStructure.bias.toLowerCase()} higher-timeframe bias, but no confirming BOS body close is present.`;
+          }
+
+          const riskNote = tradeBias === "NO TRADE"
+            ? "No entry, SL, or TP: structure and confirmation rules are not satisfied."
+            : tradeContext.startsWith("Counter-trend")
+              ? "Counter-trend management: take profit early at/before the next swing level; move SL to break-even at 1:1 and do not hold for the higher-timeframe swing."
+              : "With-trend management: TP1 at/before the next swing level; only consider TP2 after continuation BOS with higher-timeframe agreement. Trail behind new swing lows/highs.";
+          const output = document.getElementById("structureOutput");
+          output.replaceChildren();
+          const lines = [
+            `Timeframe: ${timeframe}`,
+            `Current Price: ${formatPrice(currentPrice)}`,
+            `Higher Timeframe Bias (${higherTimeframe}): ${higherStructure.bias} — ${higherStructure.sequence}`,
+            `Current Structure (${timeframe}): ${chartStructure.bias} — ${chartStructure.sequence}`,
+            `Phase: ${phase}`,
+            `Last BOS: ${bos}`,
+            `Last CHoCH: ${choch}`,
+            `Trade Bias: ${tradeBias}${tradeContext ? ` (${tradeContext})` : ""}`,
+            `Reason: ${reason}`,
+            `Risk / TP guidance: ${riskNote}`
           ];
           for (const line of lines) {
             const paragraph = document.createElement("p");
