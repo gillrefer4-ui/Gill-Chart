@@ -22,7 +22,7 @@
 
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 320px; min-height: 100vh; }
-      button, input { font: inherit; }
+      button, input, select { font: inherit; }
       button { color: inherit; }
 
       .shell { max-width: 1180px; margin: 0 auto; padding: 0 34px 52px; }
@@ -123,6 +123,38 @@
       .delete-button svg { display: block; width: 16px; height: 16px; }
       .empty-state { padding: 23px; border: 1px dashed #343b35; border-radius: 11px; color: var(--muted); text-align: center; font-size: 13px; }
       .status { min-height: 18px; margin: 12px 0 0; color: #ffad9e; text-align: center; font-size: 12px; }
+      .learning, .analysis { max-width: 790px; margin: 44px auto 0; }
+      .learning > h2, .analysis > h2 { margin: 0 0 7px; font-size: 17px; letter-spacing: -.025em; }
+      .learning-intro, .analysis-intro { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+      .lesson {
+        margin-top: 9px; border: 1px solid var(--line); border-radius: 10px;
+        background: var(--panel);
+      }
+      .lesson summary { padding: 14px 16px; color: #e2e7e2; cursor: pointer; font-size: 13px; font-weight: 700; }
+      .lesson-content { padding: 0 16px 15px; color: #b7c0b8; font-size: 12px; line-height: 1.7; }
+      .lesson-content p { margin: 8px 0; }
+      .lesson-content ul { margin: 7px 0; padding-left: 19px; }
+      .analysis-form {
+        display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;
+        padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+      }
+      .field { display: grid; gap: 6px; min-width: 0; }
+      .field label { color: #c1c9c2; font-size: 11px; }
+      .field input, .field select {
+        width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #3a423c;
+        border-radius: 7px; background: #101311; color: #f3f5f2;
+      }
+      .field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .analysis-form .button { grid-column: 1 / -1; justify-self: start; }
+      .analysis-note { grid-column: 1 / -1; margin: 0; color: #929b94; font-size: 11px; line-height: 1.6; }
+      .analysis-error { grid-column: 1 / -1; min-height: 16px; margin: 0; color: #ffad9e; font-size: 12px; }
+      .analysis-report {
+        margin-top: 12px; padding: 16px; border: 1px solid #29444a; border-radius: 10px;
+        background: #121b1c; color: #dce5e1; font-size: 13px; line-height: 1.8;
+      }
+      .analysis-report h3 { margin: 0 0 8px; font-size: 14px; }
+      .analysis-report p { margin: 2px 0; }
+      .analysis-report[hidden] { display: none; }
       footer { margin-top: 66px; padding-top: 20px; border-top: 1px solid var(--line); color: #737c75; text-align: center; font-size: 11px; line-height: 1.6; }
 
       @media (max-width: 600px) {
@@ -138,6 +170,9 @@
         .preview { padding: 12px; }
         .preview-actions { align-items: stretch; flex-direction: column; }
         .preview-actions .button { width: 100%; }
+        .analysis-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .analysis-form .field:first-child { grid-column: 1 / -1; }
+        .analysis-form .button { width: 100%; }
         .history { margin-top: 42px; }
         footer { margin-top: 48px; }
       }
@@ -172,7 +207,7 @@
         <section class="intro">
           <div class="eyebrow">Gill Development · MT5 gold charts</div>
           <h1>Bring your gold chart<br>into focus.</h1>
-          <p>Upload or photograph an MT5 gold chart and prepare it for analysis. Your images stay in this browser; chart reading and trade levels are not connected yet.</p>
+          <p>Prepare an MT5 XAUUSD chart and read its candles, current-price line, and axes using Gill Chart rules. Images stay in this browser; readings in the worksheet are entered by you.</p>
         </section>
 
         <section class="workspace" aria-label="Chart image upload">
@@ -207,7 +242,7 @@
               </div>
               <div class="crop-result" id="cropResult">
                 <div class="preview-image-wrap"><img class="preview-image" id="previewImage" alt="Cropped chart, ready for analysis"></div>
-                <p class="crop-result-note">Focused chart image ready. Analysis and trade signals are not connected yet.</p>
+                <p class="crop-result-note">Focused chart image ready. The website does not automatically recognize chart values or generate trade signals.</p>
                 <div class="crop-actions">
                   <button class="button button-secondary" id="recropButton" type="button">Adjust crop</button>
                 </div>
@@ -225,6 +260,68 @@
           <p class="status" id="status" role="status"></p>
         </section>
 
+        <section class="learning" aria-labelledby="rulesTitle">
+          <h2 id="rulesTitle">Gill Chart rules</h2>
+          <p class="learning-intro">The lessons you have taught so far are the framework for this workspace. No chart values are inferred when they are not readable.</p>
+          <details class="lesson">
+            <summary>Lesson 01 · Forex and XAUUSD</summary>
+            <div class="lesson-content">
+              <p>Forex is the global, decentralized market for trading currencies and metals against each other, open 24 hours a day, five days a week, through brokers such as MT5 rather than one central exchange. Instruments are quoted BASE/QUOTE: the price is how much quote currency buys one unit of base currency. In EUR/USD, EUR is the base and USD is the quote. XAUUSD is a metal pair, not a currency pair: its price is the USD amount for one troy ounce of gold.</p>
+              <p><strong>Gill Chart does not trade.</strong> It analyzes price structure and, only when a setup is clear, reports direction, entry, stop loss, take profit, and reasoning. Low probability means <strong>NO TRADE</strong>; predictions are never certain.</p>
+              <ul>
+                <li>Bid is the price the broker will buy from you; ask is the price the broker will sell to you. Spread is ask minus bid and is the cost of entering; gold's spread is wider than EURUSD's.</li>
+                <li>Gill Chart's XAUUSD convention: 1.00 price move = 100 points; 0.10 = 10 points; 0.01 = 1 point.</li>
+                <li>Gill Chart's lot convention: 1.00 lot = 100 ounces; 0.01 lot = 1 ounce. Verify contract specifications with the broker.</li>
+                <li>Leverage lets a smaller balance control a larger position and increases both risk and potential return. Margin is held while a trade is open.</li>
+                <li>BUY/LONG expects price to rise; SELL/SHORT expects it to fall. Entry is where the trade starts. A stop loss (SL) automatically closes at a loss to protect the account and must always be set; take profit (TP) closes at the intended profit.</li>
+                <li>Risk-to-reward compares risk distance with reward distance. For example, risking 3.00 to target 6.00 gives RR 1:2.</li>
+                <li>Sydney is typically quiet/ranging; Tokyo/Asian is low-to-medium volatility and gold often ranges. Prioritize London (approximately 10:00–19:00 EAT) and New York (approximately 15:00–00:00 EAT); New York is typically most volatile for XAUUSD.</li>
+                <li>Banks and institutions have the largest volume, followed by hedge funds, central banks (including through rates and news), and retail traders. Follow institutional movement rather than fight it.</li>
+              </ul>
+            </div>
+          </details>
+          <details class="lesson">
+            <summary>Lesson 02 · Candlesticks and chart reading</summary>
+            <div class="lesson-content">
+              <p>Read only the candlesticks, current-price horizontal line, Y-axis (price), and X-axis (time). Ignore indicators, buttons, popups, account details, and unrelated chart objects.</p>
+              <ul>
+                <li>Each candle represents one time period and has Open (start), High (highest), Low (lowest), and Close (end). Its body size is |Close − Open|; upper wick is High − max(Open, Close); lower wick is min(Open, Close) − Low. Large bodies show strong movement; small bodies show weakness or indecision.</li>
+                <li>Close above Open is bullish (green/white); Close below Open is bearish (red/black); a near-equal open and close is a doji/indecision. A doji alone is not an entry. An upper wick shows rejection from higher prices/sellers pushing down; a lower wick shows rejection from lower prices/buyers pushing up. Long wicks can mark rejection or liquidity sweeps; short or absent wicks can show acceptance.</li>
+                <li>Read current price where the dashed live-price line meets the Y-axis. Price rises up the Y-axis. Use the nearest price labels to interpolate; zoom changes label spacing, not price values.</li>
+                <li>Use X-axis date/time spacing to identify timeframe, not the toolbar: monthly labels indicate MN1, weekly date steps W1, daily labels D1, day-plus-hour H4/H1, and hour/minute steps M30/M15/M5/M1. The rightmost candle is current/most recent; candle spacing in time stays fixed for a timeframe regardless of zoom.</li>
+                <li>Higher timeframes (MN1/W1/D1/H4) set trend and major structure; H1/M30/M15 inform structure and entries; M5/M1 are for timing and confirmation, not bias alone. Higher timeframe structure controls lower timeframe decisions.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+
+        <section class="analysis" aria-labelledby="worksheetTitle">
+          <h2 id="worksheetTitle">Candle-reading worksheet</h2>
+          <p class="analysis-intro">Read the values from the chart yourself, using the X-axis for timeframe and the current-price line against the Y-axis. The worksheet calculates candle type and wick/body sizes; it does not inspect the image.</p>
+          <form class="analysis-form" id="analysisForm">
+            <div class="field">
+              <label for="chartTimeframe">Timeframe (identified from X-axis)</label>
+              <select id="chartTimeframe" required>
+                <option value="">Select timeframe</option>
+                <option>MN1</option><option>W1</option><option>D1</option><option>H4</option>
+                <option>H1</option><option>M30</option><option>M15</option><option>M5</option><option>M1</option>
+              </select>
+            </div>
+            <div class="field"><label for="currentPrice">Current price</label><input id="currentPrice" type="number" step="any" inputmode="decimal" required></div>
+            <div class="field"><label for="candleOpen">Last closed · Open</label><input id="candleOpen" type="number" step="any" inputmode="decimal" required></div>
+            <div class="field"><label for="candleHigh">High</label><input id="candleHigh" type="number" step="any" inputmode="decimal" required></div>
+            <div class="field"><label for="candleLow">Low</label><input id="candleLow" type="number" step="any" inputmode="decimal" required></div>
+            <div class="field"><label for="candleClose">Close</label><input id="candleClose" type="number" step="any" inputmode="decimal" required></div>
+            <p class="analysis-note">Enter the last fully closed candle. A doji threshold is not specified in the lessons, so only an exactly equal Open and Close is automatically labeled doji; near-equal candles need visual judgment. No entry, stop-loss, or take-profit signal is generated by this worksheet.</p>
+            <p class="analysis-error" id="analysisError" role="alert"></p>
+            <button class="button button-primary" type="submit">Build candle reading</button>
+          </form>
+          <div class="analysis-report" id="analysisReport" aria-live="polite" hidden>
+            <h3>Chart reading</h3>
+            <div id="analysisOutput"></div>
+          </div>
+        </section>
+
         <section class="history" aria-labelledby="historyTitle">
           <div class="section-heading">
             <div><h2 id="historyTitle">Recent uploads</h2><p>Your chart images, saved locally on this device</p></div>
@@ -233,7 +330,7 @@
           <div class="history-list" id="historyList"><div class="empty-state">Your uploaded charts will appear here.</div></div>
         </section>
       </main>
-      <footer>A Gill Development product.<br>Chart analysis and trade levels are not connected yet. Trading involves risk; this workspace does not provide financial advice.</footer>
+      <footer>A Gill Development product.<br>Chart readings are entered manually; automated image analysis and trade levels are not connected. Trading involves risk; this workspace does not provide financial advice.</footer>
     </div>
 
     <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
@@ -526,6 +623,66 @@
           } catch (error) {
             showError("Could not clear local upload history.");
           }
+        });
+
+        document.getElementById("analysisForm").addEventListener("submit", event => {
+          event.preventDefault();
+          const errorMessage = document.getElementById("analysisError");
+          const report = document.getElementById("analysisReport");
+          const form = event.currentTarget;
+          if (!form.reportValidity()) return;
+
+          const timeframe = document.getElementById("chartTimeframe").value;
+          const currentPrice = Number(document.getElementById("currentPrice").value);
+          const open = Number(document.getElementById("candleOpen").value);
+          const high = Number(document.getElementById("candleHigh").value);
+          const low = Number(document.getElementById("candleLow").value);
+          const close = Number(document.getElementById("candleClose").value);
+
+          if (![currentPrice, open, high, low, close].every(Number.isFinite)
+            || high < Math.max(open, close) || low > Math.min(open, close) || high < low) {
+            errorMessage.textContent = "Check the candle values: High must be at least as high as Open and Close, and Low must be at most as low as both.";
+            report.hidden = true;
+            return;
+          }
+
+          errorMessage.textContent = "";
+          const body = Math.abs(close - open);
+          const upperWick = high - Math.max(open, close);
+          const lowerWick = Math.min(open, close) - low;
+          const type = close > open ? "Bullish" : close < open ? "Bearish" : "Doji";
+          const upperWickReading = upperWick > 0
+            ? "The upper wick reflects rejection from higher prices."
+            : "No upper wick; price was accepted at the high.";
+          const lowerWickReading = lowerWick > 0
+            ? "The lower wick reflects rejection from lower prices."
+            : "No lower wick; price was accepted at the low.";
+          const formatPrice = value => new Intl.NumberFormat(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 5
+          }).format(value);
+          const interpretation = type === "Bullish"
+            ? `Buyers won; price closed higher than it opened. ${upperWickReading} ${lowerWickReading}`
+            : type === "Bearish"
+              ? `Sellers won; price closed lower than it opened. ${upperWickReading} ${lowerWickReading}`
+              : `Indecision; neither side won. Do not enter on a doji alone. ${upperWickReading} ${lowerWickReading}`;
+          const output = document.getElementById("analysisOutput");
+          output.replaceChildren();
+          const lines = [
+            `Timeframe: ${timeframe}`,
+            `Current Price: ${formatPrice(currentPrice)}`,
+            `Last Closed Candle: O= ${formatPrice(open)}, H= ${formatPrice(high)}, L= ${formatPrice(low)}, C= ${formatPrice(close)}, Type= ${type}`,
+            `Body Size: ${formatPrice(body)}`,
+            `Upper Wick Size: ${formatPrice(upperWick)}`,
+            `Lower Wick Size: ${formatPrice(lowerWick)}`,
+            `Interpretation: ${interpretation}`
+          ];
+          for (const line of lines) {
+            const paragraph = document.createElement("p");
+            paragraph.textContent = line;
+            output.append(paragraph);
+          }
+          report.hidden = false;
         });
 
         openDatabase().then(db => {
