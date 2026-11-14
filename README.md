@@ -1,6 +1,9 @@
-# MTV Gold Chart Workspace
+# Gill Chart
 
-A standalone, dependency-free chart image upload page. It does not connect to a
+Gill Chart is a standalone, dependency-free workspace for preparing MetaTrader 5
+(MT5) gold chart screenshots and photos for analysis. It currently supports
+image upload, cropping, and local history only; chart reading, market data,
+analysis, and entry/TP/SL levels are not implemented. It does not connect to a
 server, GitHub, or an analysis service. Uploaded images and their history are
 stored in the browser's local IndexedDB database.
 

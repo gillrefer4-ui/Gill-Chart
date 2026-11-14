@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101311">
-    <title>MTV Gold — Chart workspace</title>
+    <meta name="description" content="Gill Chart is a local workspace for preparing MT5 gold chart images for analysis.">
+    <title>Gill Chart — MT5 gold workspace</title>
     <style>
       :root {
         color-scheme: dark;
@@ -15,7 +16,7 @@
         text-rendering: optimizeLegibility;
         --muted: #929b94;
         --line: #292f2b;
-        --green: #c6f36a;
+        --accent: #19d8e8;
         --panel: #171b18;
       }
 
@@ -34,20 +35,20 @@
       }
       .brand { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; letter-spacing: -.03em; }
       .brand-mark {
-        width: 32px; height: 32px; display: grid; place-items: center;
-        border-radius: 9px; background: var(--green); color: #141810;
-        font-size: 15px; font-weight: 900;
+        width: 36px; height: 36px; flex: 0 0 auto;
+        border: 1px solid #293d47; border-radius: 10px; background: #121b20;
       }
+      .brand-mark text { font-family: inherit; font-size: 31px; font-weight: 850; }
       .brand span:last-child { color: var(--muted); font-weight: 500; }
       .local-badge {
         display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px;
         border: 1px solid var(--line); border-radius: 999px; color: #c1c9c2; font-size: 12px;
       }
-      .local-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+      .local-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
       main { padding-top: 65px; }
       .intro { max-width: 660px; margin: 0 auto 34px; text-align: center; }
-      .eyebrow { color: var(--green); font-size: 11px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+      .eyebrow { color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
       h1 { margin: 15px 0 12px; font-size: clamp(32px, 5vw, 48px); line-height: 1.08; letter-spacing: -.055em; }
       .intro p { max-width: 515px; margin: 0 auto; color: var(--muted); font-size: 15px; line-height: 1.7; }
 
@@ -62,10 +63,10 @@
         justify-content: center; padding: 32px 22px; border: 1px dashed #495447;
         border-radius: 12px; text-align: center; transition: background .18s, border-color .18s;
       }
-      .dropzone.dragging { border-color: var(--green); background: #c6f36a0b; }
+      .dropzone.dragging { border-color: var(--accent); background: #19d8e80b; }
       .upload-icon {
         width: 54px; height: 54px; display: grid; place-items: center; margin-bottom: 17px;
-        border: 1px solid #3a4439; border-radius: 16px; background: #20271f; color: var(--green);
+        border: 1px solid #29444a; border-radius: 16px; background: #19272a; color: var(--accent);
       }
       .upload-icon svg { width: 24px; height: 24px; }
       .dropzone h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
@@ -77,13 +78,13 @@
         font-size: 13px; font-weight: 700; transition: transform .15s, background .15s;
       }
       .button:hover { transform: translateY(-1px); }
-      .button-primary { background: var(--green); color: #17200d; }
-      .button-primary:hover { background: #d3ff7e; }
+      .button-primary { background: var(--accent); color: #07191b; }
+      .button-primary:hover { background: #5ce8f1; }
       .button-secondary { border-color: #3a423c; background: #202521; color: #dce1dc; }
       .button-secondary:hover { background: #282e29; }
       .file-hint { margin-top: 16px; color: #78817a; font-size: 11px; }
       .privacy-note { display: flex; justify-content: center; align-items: center; gap: 7px; margin: 17px 0 0; color: #929b94; font-size: 12px; }
-      .privacy-note svg { width: 14px; height: 14px; color: var(--green); }
+      .privacy-note svg { width: 14px; height: 14px; color: var(--accent); }
 
       .preview { display: none; padding: 20px; }
       .preview.visible { display: block; }
@@ -95,7 +96,7 @@
       .crop-surface { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
       .crop-image, .preview-image { display: block; max-width: 100%; max-height: 420px; object-fit: contain; }
       .crop-overlay { position: absolute; inset: 0; overflow: hidden; cursor: crosshair; touch-action: none; }
-      .crop-selection { position: absolute; border: 2px solid var(--green); background: #c6f36a1a; box-shadow: 0 0 0 9999px #080b0980; pointer-events: none; }
+      .crop-selection { position: absolute; border: 2px solid var(--accent); background: #19d8e81a; box-shadow: 0 0 0 9999px #080b0980; pointer-events: none; }
       .crop-result { display: none; }
       .crop-result.visible { display: block; }
       .preview-image-wrap { min-height: 190px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #101311; }
@@ -110,7 +111,7 @@
       .section-heading h2 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
       .section-heading p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
       .text-button { padding: 6px 0; border: 0; background: none; color: #aab3ab; cursor: pointer; font-size: 12px; }
-      .text-button:hover { color: var(--green); }
+      .text-button:hover { color: var(--accent); }
       .history-list { display: grid; gap: 10px; }
       .history-item { display: flex; align-items: center; gap: 14px; padding: 11px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); }
       .history-thumb { width: 68px; height: 52px; flex: 0 0 auto; object-fit: cover; border-radius: 6px; background: #0e110f; }
@@ -144,15 +145,28 @@
   <body>
     <div class="shell">
       <header>
-        <div class="brand"><span class="brand-mark">M</span><span>MTV Gold <span>/ chart workspace</span></span></div>
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 40 40" role="img" aria-label="Gill Chart logo">
+            <defs>
+              <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#168bff"/>
+                <stop offset="1" stop-color="#19d8e8"/>
+              </linearGradient>
+            </defs>
+            <text x="2" y="33" fill="url(#brand-gradient)">G</text>
+            <rect x="28" y="2" width="7" height="7" rx="1.5" fill="#19d8e8"/>
+            <rect x="34" y="11" width="4" height="4" rx="1" fill="#168bff"/>
+          </svg>
+          <span>Gill Chart <span>/ Gill Development</span></span>
+        </div>
         <div class="local-badge">Stored on this device</div>
       </header>
 
       <main>
         <section class="intro">
-          <div class="eyebrow">Your chart analysis workspace</div>
+          <div class="eyebrow">Gill Development · MT5 gold charts</div>
           <h1>Bring your gold chart<br>into focus.</h1>
-          <p>Upload a screenshot of your MTV gold market chart. Your images stay in this browser, ready for your analysis tools.</p>
+          <p>Upload or photograph an MT5 gold chart and prepare it for analysis. Your images stay in this browser; chart reading and trade levels are not connected yet.</p>
         </section>
 
         <section class="workspace" aria-label="Chart image upload">
@@ -161,7 +175,7 @@
               <div class="upload-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
               </div>
-              <h2>Upload your chart image</h2>
+              <h2>Upload an MT5 chart image</h2>
               <p>Drag and drop an image here, or browse your device</p>
               <div class="actions">
                 <button class="button button-primary" id="browseButton" type="button">Choose an image</button>
@@ -213,7 +227,7 @@
           <div class="history-list" id="historyList"><div class="empty-state">Your uploaded charts will appear here.</div></div>
         </section>
       </main>
-      <footer>Chart analysis and trade signals are not connected yet.<br>Trading involves risk. This workspace does not provide financial advice.</footer>
+      <footer>A Gill Development product.<br>Chart analysis and trade levels are not connected yet. Trading involves risk; this workspace does not provide financial advice.</footer>
     </div>
 
     <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
