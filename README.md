@@ -13,11 +13,17 @@ and price levels are readable, the app shows a BUY/SELL candidate and draws
 entry, stop-loss, and take-profit lines on the chart-timeframe image. Otherwise,
 it reports **NO TRADE**.
 
-The Gill Chart lessons are included in the page as reference material, and a
-subset is implemented as explicit JavaScript rules; the site is not trained by
-chat and does not call any remote AI, API, or market-data feed. Axis text
+Lesson 02 is included in the page and implemented in the local analysis: it
+reports the last closed candle's OHLC, bullish/bearish/doji type, body and wick
+sizes, and a brief interpretation, along with timeframe and current price when
+readable. A body no larger than 10% of the full candle range is classified as a
+doji; wicks longer than 10% of the range suggest rejection, while shorter or
+absent wicks suggest acceptance. Image-derived readings are estimates; unclear
+values are reported as unavailable rather than guessed. The site is not trained
+by chat and does not call any remote AI, API, or market-data feed. Axis text
 reading uses the browser's built-in `TextDetector` locally when available;
-browsers without it report prices and timeframe as unavailable.
+browsers without it report prices and timeframe as unavailable. A static image
+cannot track live price movement over time.
 Image-derived values and structure are estimates and can be wrong. Upload two
 XAUUSD images, with the second image on a strictly larger timeframe than the
 chart used for entry; the app does not independently verify the instrument

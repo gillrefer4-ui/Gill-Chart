@@ -280,14 +280,16 @@
           <details class="lesson">
             <summary>Lesson 02 · Candlesticks and chart reading</summary>
             <div class="lesson-content">
-              <p>Read only the candlesticks, current-price horizontal line, Y-axis (price), and X-axis (time). Ignore indicators, buttons, popups, account details, and unrelated chart objects.</p>
+              <p>For this lesson, read only the candlesticks, current-price horizontal line, Y-axis (price), and X-axis (time). Ignore indicators, drawings, buttons, popups, account details, and unrelated chart objects. An uploaded screenshot is a single snapshot, so it cannot track a live price line over time.</p>
               <ul>
-                <li>Each candle represents one time period and has Open (start), High (highest), Low (lowest), and Close (end). Its body size is |Close − Open|; upper wick is High − max(Open, Close); lower wick is min(Open, Close) − Low. Large bodies show strong movement; small bodies show weakness or indecision.</li>
-                <li>Close above Open is bullish (green/white); Close below Open is bearish (red/black); a near-equal open and close is a doji/indecision. A doji alone is not an entry. An upper wick shows rejection from higher prices/sellers pushing down; a lower wick shows rejection from lower prices/buyers pushing up. Long wicks can mark rejection or liquidity sweeps; short or absent wicks can show acceptance.</li>
-                <li>Read current price where the dashed live-price line meets the Y-axis. Price rises up the Y-axis. Use the nearest price labels to interpolate; zoom changes label spacing, not price values.</li>
-                <li>Use X-axis date/time spacing to identify timeframe, not the toolbar: monthly labels indicate MN1, weekly date steps W1, daily labels D1, day-plus-hour H4/H1, and hour/minute steps M30/M15/M5/M1. The rightmost candle is current/most recent; candle spacing in time stays fixed for a timeframe regardless of zoom.</li>
-                <li>Higher timeframes (MN1/W1/D1/H4) set trend and major structure; H1/M30/M15 inform structure and entries; M5/M1 are for timing and confirmation, not bias alone. Higher timeframe structure controls lower timeframe decisions.</li>
+                <li>The Y-axis on the right is price, increasing upward; the X-axis along the bottom is time, moving left to right. Each candle is one period with Open (start), High (top wick), Low (bottom wick), and Close (end). Never guess prices: read them against the nearest Y-axis labels and interpolate between those labels. Zoom changes label spacing, not the candle's price.</li>
+                <li>The body is between Open and Close: body size = |Close − Open|. The upper wick is High − max(Open, Close); the lower wick is min(Open, Close) − Low. Large bodies indicate stronger movement; small bodies indicate weaker movement or indecision. As a consistent visual heuristic, wicks longer than 10% of the full candle range suggest rejection and may mark liquidity sweeps; shorter or absent wicks suggest acceptance. Do not ignore gold wicks.</li>
+                <li>Close above Open is bullish (often green/white); Close below Open is bearish (often red/black). A doji is indecision: Gill Chart classifies a body no larger than 10% of the candle's full High-to-Low range as a doji; do not enter on a doji alone. Use “bearish,” never “berry.”</li>
+                <li>Read current price where the dashed horizontal price line meets the Y-axis. The rightmost candle is the most recent and may still be forming; report the last closed candle. A screenshot cannot show whether the live line is moving up or down or be tracked every second.</li>
+                <li>Identify timeframe from X-axis date/time labels, not the toolbar: months/years = MN1; weekly dates = W1; daily dates = D1; day plus 4-hour steps = H4; hourly steps = H1; 30-, 15-, 5-, or 1-minute steps = M30/M15/M5/M1. Label spacing can vary with zoom, but candle time intervals remain fixed.</li>
+                <li>Higher timeframes (MN1/W1/D1/H4) show trend and major structure; H1/M30/M15 show structure and entry zones; M5/M1 are for timing and confirmation, never bias alone. Higher-timeframe direction controls lower-timeframe decisions.</li>
               </ul>
+              <p>For a readable chart image, report: Timeframe; Current Price; Last Closed Candle (O, H, L, C, Type); Body Size; Upper Wick Size; Lower Wick Size; Interpretation (buyers/sellers, rejection, or indecision). Mark any unclear reading unavailable instead of guessing.</p>
             </div>
           </details>
           <details class="lesson">
@@ -709,12 +711,21 @@
           addLine(`Last closed-candle BOS: ${breaks.bos}. CHoCH: ${breaks.choch}.`);
           addLine(`Corrective swing before BOS: ${breaks.correctionConfirmed ? "detected" : "not confirmed"}.`);
           addLine(`Detected X-axis tick groups: ${scan.xAxisMarks}; detected Y-axis label groups: ${scan.yAxisMarks}. Local text recognition is used when this browser supports it.`);
-          addLine(`Timeframe read from X-axis: ${axes.timeframe || "unavailable"}.`);
-          addLine(`Current price read from the price line and Y-axis labels: ${formatPrice(axes.currentPrice)}.`);
+          addLine(`Timeframe: ${axes.timeframe || "unavailable"}.`);
+          addLine(`Current Price: ${formatPrice(axes.currentPrice)}.`);
           if (axes.lastCandle) {
-            addLine(`Last closed candle OHLC: O ${formatPrice(axes.lastCandle.open)}, H ${formatPrice(axes.lastCandle.high)}, L ${formatPrice(axes.lastCandle.low)}, C ${formatPrice(axes.lastCandle.close)}.`);
+            const candle = GillChartRules.analyzeCandle(axes.lastCandle);
+            addLine(`Last Closed Candle: O= ${formatPrice(axes.lastCandle.open)}, H= ${formatPrice(axes.lastCandle.high)}, L= ${formatPrice(axes.lastCandle.low)}, C= ${formatPrice(axes.lastCandle.close)}, Type= ${candle.type}.`);
+            addLine(`Body Size: ${formatPrice(candle.body)}.`);
+            addLine(`Upper Wick Size: ${formatPrice(candle.upperWick)}.`);
+            addLine(`Lower Wick Size: ${formatPrice(candle.lowerWick)}.`);
+            addLine(`Interpretation: ${candle.interpretation}`);
           } else {
-            addLine("Last closed candle OHLC prices: unavailable because the Y-axis labels could not be read.");
+            addLine("Last Closed Candle: O/H/L/C and Type unavailable because the Y-axis labels could not be read.");
+            addLine("Body Size: unavailable.");
+            addLine("Upper Wick Size: unavailable.");
+            addLine("Lower Wick Size: unavailable.");
+            addLine("Interpretation: unavailable because the candle prices could not be read.");
           }
           const highPrices = axes.swingHighPrices.slice(-4).map(formatPrice).join(", ");
           const lowPrices = axes.swingLowPrices.slice(-4).map(formatPrice).join(", ");
@@ -952,35 +963,21 @@
           }
 
           errorMessage.textContent = "";
-          const body = Math.abs(close - open);
-          const upperWick = high - Math.max(open, close);
-          const lowerWick = Math.min(open, close) - low;
-          const type = close > open ? "Bullish" : close < open ? "Bearish" : "Doji";
-          const upperWickReading = upperWick > 0
-            ? "The upper wick reflects rejection from higher prices."
-            : "No upper wick; price was accepted at the high.";
-          const lowerWickReading = lowerWick > 0
-            ? "The lower wick reflects rejection from lower prices."
-            : "No lower wick; price was accepted at the low.";
+          const candle = GillChartRules.analyzeCandle({ open, high, low, close });
           const formatPrice = value => new Intl.NumberFormat(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 5
           }).format(value);
-          const interpretation = type === "Bullish"
-            ? `Buyers won; price closed higher than it opened. ${upperWickReading} ${lowerWickReading}`
-            : type === "Bearish"
-              ? `Sellers won; price closed lower than it opened. ${upperWickReading} ${lowerWickReading}`
-              : `Indecision; neither side won. Do not enter on a doji alone. ${upperWickReading} ${lowerWickReading}`;
           const output = document.getElementById("analysisOutput");
           output.replaceChildren();
           const lines = [
             `Timeframe: ${timeframe}`,
             `Current Price: ${formatPrice(currentPrice)}`,
-            `Last Closed Candle: O= ${formatPrice(open)}, H= ${formatPrice(high)}, L= ${formatPrice(low)}, C= ${formatPrice(close)}, Type= ${type}`,
-            `Body Size: ${formatPrice(body)}`,
-            `Upper Wick Size: ${formatPrice(upperWick)}`,
-            `Lower Wick Size: ${formatPrice(lowerWick)}`,
-            `Interpretation: ${interpretation}`
+            `Last Closed Candle: O= ${formatPrice(open)}, H= ${formatPrice(high)}, L= ${formatPrice(low)}, C= ${formatPrice(close)}, Type= ${candle.type}`,
+            `Body Size: ${formatPrice(candle.body)}`,
+            `Upper Wick Size: ${formatPrice(candle.upperWick)}`,
+            `Lower Wick Size: ${formatPrice(candle.lowerWick)}`,
+            `Interpretation: ${candle.interpretation}`
           ];
           for (const line of lines) {
             const paragraph = document.createElement("p");

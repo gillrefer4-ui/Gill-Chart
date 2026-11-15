@@ -14,6 +14,40 @@
   ];
   const TIMEFRAME_RANK = new Map(TIMEFRAMES.map((timeframe, index) => [timeframe.name, index]));
 
+  function analyzeCandle({ open, high, low, close }) {
+    const values = [open, high, low, close];
+    if (!values.every(Number.isFinite) || high < Math.max(open, close) || low > Math.min(open, close) || high < low) {
+      return {
+        type: "Unavailable",
+        body: null,
+        upperWick: null,
+        lowerWick: null,
+        interpretation: "Candle values could not be read consistently."
+      };
+    }
+
+    const body = Math.abs(close - open);
+    const upperWick = high - Math.max(open, close);
+    const lowerWick = Math.min(open, close) - low;
+    const range = high - low;
+    const type = high === low || body <= (high - low) * 0.1
+      ? "Doji"
+      : close > open ? "Bullish" : close < open ? "Bearish" : "Doji";
+    const upperReading = upperWick > range * 0.1
+      ? "The relatively long upper wick suggests rejection from higher prices."
+      : "The short or absent upper wick suggests acceptance near the high.";
+    const lowerReading = lowerWick > range * 0.1
+      ? "The relatively long lower wick suggests rejection from lower prices."
+      : "The short or absent lower wick suggests acceptance near the low.";
+    const interpretation = type === "Bullish"
+      ? `Buyers won; price closed higher than it opened. ${upperReading} ${lowerReading}`
+      : type === "Bearish"
+        ? `Sellers won; price closed lower than it opened. ${upperReading} ${lowerReading}`
+        : `Indecision; the body is 10% or less of the candle's full range. Do not enter on a doji alone. ${upperReading} ${lowerReading}`;
+
+    return { type, body, upperWick, lowerWick, interpretation };
+  }
+
   function findSwings(candles) {
     const highs = [];
     const lows = [];
@@ -263,6 +297,7 @@
   }
 
   window.GillChartRules = Object.freeze({
+    analyzeCandle,
     findSwings,
     classifyStructure,
     detectBreaks,
