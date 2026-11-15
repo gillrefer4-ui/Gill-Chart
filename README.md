@@ -1,23 +1,23 @@
 # Gill Chart
 
-Gill Chart is a standalone, dependency-free workspace for preparing MetaTrader 5
-(MT5) gold chart screenshots and photos for analysis. It supports image upload,
-cropping, local history, a forex/XAUUSD reference, a manual candle-reading
-worksheet, a manual market-structure worksheet, and a browser-local chart-image
-scan. The scan applies fixed pixel-processing rules to candle shapes, the
-current-price line, and X/Y-axis markings in the cropped image. It estimates
-swing structure and can draw provisional entry, stop-loss (SL), and take-profit
-(TP) guides over the chart when its structure and correction checks agree.
+Gill Chart is a standalone, dependency-free website for image-based analysis of
+MetaTrader 5 (MT5) gold charts. Select or drop a PNG, JPG, or WEBP chart image
+and the browser automatically analyzes it; no crop or separate scan action is
+required. The JavaScript in `index.html` applies pixel-processing rules to
+estimated candle shapes, swing structure, a possible current-price line, and
+visible X/Y-axis marks.
 
-The scan uses no AI, external API, remote service, or market-data feed. Axis
-text is not OCR'd into numeric prices or a timeframe, so levels are visual
-image coordinates that must be checked against the chart. Candle, line, and
-swing detection are visual heuristics and can misread screenshots. The TP line
-is an illustrative 1:2 risk projection, not a detected future swing; a single
-chart cannot confirm higher-timeframe structure. Verify the chart, actual
-prices, timeframe, higher-timeframe bias, and every level before trading.
-Uploaded images and their history are stored in the browser's local IndexedDB
-database.
+The Gill Chart lessons are included in the page as reference material. They
+were translated into explicit JavaScript rules; the site is not trained by
+chat, and does not use AI, an external API, remote service, or market-data
+feed. This image scan does not OCR numeric prices or reliably determine the
+timeframe or higher-timeframe bias. In keeping with the lessons' structure-first
+and multi-timeframe requirements, it reports **NO TRADE** from a single image
+and does not invent entry, stop-loss, or take-profit prices. The pixel-based
+readings are estimates and may be wrong.
+
+Uploaded images and their local history stay in the browser's IndexedDB
+database. Nothing is sent to a server.
 
 ## Run locally
 
@@ -25,10 +25,7 @@ Open `index.html` in a modern browser. If the browser restricts local storage
 for pages opened directly from disk, serve this folder with any static file
 server and open its local address instead.
 
-The page accepts PNG, JPG, and WEBP images up to 15 MB. Crop the chart with its
-candles, current-price line, and axes visible, then select “Scan chart.” The
-browser checks for contrasting candle bodies, excludes the rightmost candle as
-possibly still forming, estimates swings, checks the price line and axis
-markings, and looks for a close-confirmed BOS after a two-candle correction.
-If the image evidence is unclear, it reports NO TRADE. The optional manual
-worksheets remain available for entering price values and swing points.
+The page accepts PNG, JPG, and WEBP images up to 15 MB. Analysis starts once the
+image loads. The rules work best when the screenshot clearly shows contrasting
+candles and chart axes. This is an image-analysis prototype, not a broker or
+trade-execution system; confirm all readings independently.

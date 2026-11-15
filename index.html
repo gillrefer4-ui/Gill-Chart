@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101311">
-    <meta name="description" content="Gill Chart scans MT5 chart images locally and annotates educational entry, take-profit, and stop-loss levels.">
-    <title>Gill Chart — MT5 gold workspace</title>
+    <meta name="description" content="Gill Chart automatically analyzes uploaded MT5 chart images using locally implemented chart-reading rules.">
+    <title>Gill Chart — Automatic chart analysis</title>
     <style>
       :root {
         color-scheme: dark;
@@ -91,25 +91,15 @@
       .preview-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 15px; }
       .preview-heading h2 { margin: 0; font-size: 15px; }
       .preview-heading span { color: var(--muted); font-size: 12px; }
-      .crop-instructions { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
-      .crop-editor { min-height: 190px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #101311; }
-      .crop-surface { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
-      .crop-image, .preview-image { display: block; max-width: 100%; max-height: 420px; object-fit: contain; }
-      .crop-overlay { position: absolute; inset: 0; overflow: hidden; cursor: crosshair; touch-action: none; }
-      .crop-selection { position: absolute; border: 2px solid var(--accent); background: #19d8e81a; box-shadow: 0 0 0 9999px #080b0980; pointer-events: none; }
-      .crop-result { display: none; }
-      .crop-result.visible { display: block; }
+      .preview-image { display: block; max-width: 100%; max-height: 420px; object-fit: contain; }
       .preview-image-wrap { min-height: 190px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #101311; }
       .preview-image { max-height: 400px; }
       .annotated-image { position: relative; display: inline-grid; max-width: 100%; }
       .analysis-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
       .analysis-overlay text { font: 700 14px Inter, ui-sans-serif, system-ui, sans-serif; paint-order: stroke; stroke: #101311; stroke-width: 4px; stroke-linejoin: round; }
-      .image-analysis-controls { display: flex; justify-content: flex-end; margin-top: 16px; }
-      .image-analysis-controls .button { white-space: nowrap; }
       .image-analysis-report { margin-top: 12px; }
       .image-analysis-report p { margin: 3px 0; }
-      .crop-result-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
-      .crop-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+      .analysis-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
       .preview-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
       .file-name { overflow: hidden; color: #c6cdc7; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -130,9 +120,9 @@
       .delete-button svg { display: block; width: 16px; height: 16px; }
       .empty-state { padding: 23px; border: 1px dashed #343b35; border-radius: 11px; color: var(--muted); text-align: center; font-size: 13px; }
       .status { min-height: 18px; margin: 12px 0 0; color: #ffad9e; text-align: center; font-size: 12px; }
-      .learning, .analysis { max-width: 790px; margin: 44px auto 0; }
-      .learning > h2, .analysis > h2 { margin: 0 0 7px; font-size: 17px; letter-spacing: -.025em; }
-      .learning-intro, .analysis-intro { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+      .learning { max-width: 790px; margin: 44px auto 0; }
+      .learning > h2 { margin: 0 0 7px; font-size: 17px; letter-spacing: -.025em; }
+      .learning-intro { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.6; }
       .lesson {
         margin-top: 9px; border: 1px solid var(--line); border-radius: 10px;
         background: var(--panel);
@@ -141,26 +131,6 @@
       .lesson-content { padding: 0 16px 15px; color: #b7c0b8; font-size: 12px; line-height: 1.7; }
       .lesson-content p { margin: 8px 0; }
       .lesson-content ul { margin: 7px 0; padding-left: 19px; }
-      .analysis-form {
-        display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;
-        padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
-      }
-      .field { display: grid; gap: 6px; min-width: 0; }
-      .field label { color: #c1c9c2; font-size: 11px; }
-      .field input, .field select {
-        width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid #3a423c;
-        border-radius: 7px; background: #101311; color: #f3f5f2;
-      }
-      .field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-      .analysis-form .button { grid-column: 1 / -1; justify-self: start; }
-      .analysis-note { grid-column: 1 / -1; margin: 0; color: #929b94; font-size: 11px; line-height: 1.6; }
-      .analysis-error { grid-column: 1 / -1; min-height: 16px; margin: 0; color: #ffad9e; font-size: 12px; }
-      .swing-group {
-        grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 9px;
-      }
-      .swing-group legend { padding: 0 6px; color: #e2e7e2; font-size: 12px; font-weight: 700; }
-      .swing-group .field input { min-width: 0; }
       .analysis-report {
         margin-top: 12px; padding: 16px; border: 1px solid #29444a; border-radius: 10px;
         background: #121b1c; color: #dce5e1; font-size: 13px; line-height: 1.8;
@@ -183,12 +153,6 @@
         .preview { padding: 12px; }
         .preview-actions { align-items: stretch; flex-direction: column; }
         .preview-actions .button { width: 100%; }
-        .analysis-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .analysis-form .field:first-child { grid-column: 1 / -1; }
-        .analysis-form .button { width: 100%; }
-        .swing-group { grid-template-columns: 1fr; }
-        .image-analysis-controls { display: block; }
-        .image-analysis-controls .button { width: 100%; }
         .history { margin-top: 42px; }
         footer { margin-top: 48px; }
       }
@@ -222,8 +186,8 @@
       <main>
         <section class="intro">
           <div class="eyebrow">Gill Development · MT5 gold charts</div>
-          <h1>Bring your gold chart<br>into focus.</h1>
-          <p>Upload an MT5 XAUUSD chart to scan its candles and market structure with Gill Chart rules. Review the image annotations before using any levels.</p>
+          <h1>Upload your chart.<br>Get its analysis.</h1>
+          <p>Choose an MT5 XAUUSD chart image and Gill Chart will automatically read the visible candles and structure using the lessons built into this page.</p>
         </section>
 
         <section class="workspace" aria-label="Chart image upload">
@@ -233,7 +197,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
               </div>
               <h2>Upload an MT5 chart image</h2>
-              <p>Drag and drop an image here, or browse your device</p>
+              <p>Analysis starts automatically after you choose an image.</p>
               <div class="actions">
                 <button class="button button-primary" id="browseButton" type="button">Choose an image</button>
                 <button class="button button-secondary" id="cameraButton" type="button">Take a photo</button>
@@ -241,38 +205,18 @@
               <div class="file-hint">PNG, JPG, WEBP · Up to 15 MB</div>
             </div>
             <div class="preview" id="preview" aria-live="polite">
-              <div class="preview-heading"><h2 id="previewTitle">Frame the chart</h2><span id="imageDimensions"></span></div>
-              <p class="crop-instructions" id="cropInstructions">Drag to select the chart. Keep the candlesticks, x- and y-axis labels, and current-price line inside your selection.</p>
-              <div id="cropEditor">
-                <div class="crop-editor">
-                  <div class="crop-surface">
-                    <img class="crop-image" id="cropImage" alt="Chart image to crop">
-                    <div class="crop-overlay" id="cropOverlay" role="region" aria-label="Drag to select the chart area">
-                      <div class="crop-selection" id="cropSelection" hidden></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="crop-actions">
-                  <button class="button button-primary" id="cropButton" type="button" disabled>Crop chart</button>
-                </div>
-              </div>
-              <div class="crop-result" id="cropResult">
+              <div class="preview-heading"><h2 id="previewTitle">Chart analysis</h2><span id="imageDimensions"></span></div>
+              <div class="chart-analysis-image">
                 <div class="preview-image-wrap">
                   <div class="annotated-image">
-                    <img class="preview-image" id="previewImage" alt="Cropped chart, ready for analysis">
+                    <img class="preview-image" id="previewImage" alt="Uploaded chart being analyzed">
                     <svg class="analysis-overlay" id="analysisOverlay" aria-hidden="true"></svg>
                   </div>
                 </div>
-                <p class="crop-result-note">A fixed set of rules scans the candles, current-price line, and chart axes in this browser. No AI or external service is used. Drawn levels are provisional; confirm every reading against the image.</p>
-                <div class="image-analysis-controls">
-                  <button class="button button-primary" id="scanChartButton" type="button">Scan chart</button>
-                </div>
+                <p class="analysis-note">The built-in JavaScript analyzes the uploaded image in this browser. It does not send the image to an AI or external service.</p>
                 <div class="analysis-report image-analysis-report" id="imageAnalysisReport" aria-live="polite" hidden>
-                  <h3>Image scan</h3>
+                  <h3>Chart analysis</h3>
                   <div id="imageAnalysisOutput"></div>
-                </div>
-                <div class="crop-actions">
-                  <button class="button button-secondary" id="recropButton" type="button">Adjust crop</button>
                 </div>
               </div>
               <div class="preview-actions">
@@ -289,13 +233,13 @@
         </section>
 
         <section class="learning" aria-labelledby="rulesTitle">
-          <h2 id="rulesTitle">Gill Chart rules</h2>
-          <p class="learning-intro">The lessons you have taught so far are implemented as local image-processing rules. The scan considers only candlesticks, the current-price line, and the X/Y axes; verify every result against the chart.</p>
+          <h2 id="rulesTitle">Rules built into this page</h2>
+          <p class="learning-intro">The lessons from your earlier chat are reference material here; the JavaScript below implements only a limited subset as image-processing rules. This is rule-based image analysis, not a model trained by chat.</p>
           <details class="lesson">
             <summary>Lesson 01 · Forex and XAUUSD</summary>
             <div class="lesson-content">
               <p>Forex is the global, decentralized market for trading currencies and metals against each other, open 24 hours a day, five days a week, through brokers such as MT5 rather than one central exchange. Instruments are quoted BASE/QUOTE: the price is how much quote currency buys one unit of base currency. In EUR/USD, EUR is the base and USD is the quote. XAUUSD is a metal pair, not a currency pair: its price is the USD amount for one troy ounce of gold.</p>
-              <p><strong>Gill Chart does not trade.</strong> The local rules can draw provisional visual entry, stop-loss (SL), and take-profit (TP) levels when the candle structure and price-line checks agree. A single chart image cannot confirm higher-timeframe structure. Unclear readings mean <strong>NO TRADE</strong>; predictions are never certain.</p>
+              <p>Gill Chart reports an image-based chart reading; it does not place or manage orders. A single chart image cannot confirm higher-timeframe structure. Unclear readings or missing required context mean <strong>NO TRADE</strong>; predictions are never certain.</p>
               <ul>
                 <li>Bid is the price the broker will buy from you; ask is the price the broker will sell to you. Spread is ask minus bid and is the cost of entering; gold's spread is wider than EURUSD's.</li>
                 <li>Gill Chart's XAUUSD convention: 1.00 price move = 100 points; 0.10 = 10 points; 0.01 = 1 point.</li>
@@ -338,77 +282,6 @@
           </details>
         </section>
 
-        <section class="analysis" aria-labelledby="structureTitle">
-          <h2 id="structureTitle">Market-structure analyzer</h2>
-          <p class="analysis-intro">Optional manual market-structure worksheet. For image-based analysis, use “Scan chart” in the cropped-image preview above; the built-in rules scan the chart image and annotate any qualifying setup.</p>
-          <form class="analysis-form" id="structureForm">
-            <div class="field">
-              <label for="higherTimeframe">Higher timeframe</label>
-              <select id="higherTimeframe" required>
-                <option value="">Select timeframe</option><option>D1</option><option>H4</option><option>H1</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="structureTimeframe">Chart timeframe</label>
-              <select id="structureTimeframe" required>
-                <option value="">Select timeframe</option><option>H1</option><option>M30</option><option>M15</option><option>M5</option><option>M1</option>
-              </select>
-            </div>
-            <div class="field"><label for="structureCurrentPrice">Current price (price line / Y-axis)</label><input id="structureCurrentPrice" type="number" step="any" inputmode="decimal" required></div>
-            <div class="field"><label for="structureClose">Last closed candle close</label><input id="structureClose" type="number" step="any" inputmode="decimal" required></div>
-            <div class="field">
-              <label for="structurePhase">Current phase</label>
-              <select id="structurePhase" required>
-                <option value="">Select phase</option><option>Impulse</option><option>Correction</option>
-              </select>
-            </div>
-            <fieldset class="swing-group">
-              <legend>Higher-timeframe swings (oldest to newest)</legend>
-              <div class="field"><label for="higherSwingHighs">Last 4 swing highs (separate with semicolons)</label><input id="higherSwingHighs" type="text" inputmode="decimal" placeholder="3300; 3310; 3320; 3330" required></div>
-              <div class="field"><label for="higherSwingLows">Last 4 swing lows (separate with semicolons)</label><input id="higherSwingLows" type="text" inputmode="decimal" placeholder="3280; 3290; 3300; 3310" required></div>
-            </fieldset>
-            <fieldset class="swing-group">
-              <legend>Chart-timeframe swings (oldest to newest)</legend>
-              <div class="field"><label for="chartSwingHighs">Last 4 swing highs (separate with semicolons)</label><input id="chartSwingHighs" type="text" inputmode="decimal" placeholder="3300; 3305; 3310; 3315" required></div>
-              <div class="field"><label for="chartSwingLows">Last 4 swing lows (separate with semicolons)</label><input id="chartSwingLows" type="text" inputmode="decimal" placeholder="3290; 3295; 3300; 3305" required></div>
-            </fieldset>
-            <p class="analysis-note">Enter four confirmed swing prices in chronological order for each timeframe. BOS/CHoCH uses the last fully closed candle, never a wick. This worksheet reports structure and directional guidance; use the image scan above for visual annotations.</p>
-            <p class="analysis-error" id="structureError" role="alert"></p>
-            <button class="button button-primary" type="submit">Analyze market structure</button>
-          </form>
-          <div class="analysis-report" id="structureReport" aria-live="polite" hidden>
-            <h3>Structure analysis</h3>
-            <div id="structureOutput"></div>
-          </div>
-        </section>
-
-        <section class="analysis" aria-labelledby="worksheetTitle">
-          <h2 id="worksheetTitle">Candle-reading worksheet</h2>
-          <p class="analysis-intro">Read the values from the chart yourself, using the X-axis for timeframe and the current-price line against the Y-axis. The worksheet calculates candle type and wick/body sizes; it does not inspect the image.</p>
-          <form class="analysis-form" id="analysisForm">
-            <div class="field">
-              <label for="chartTimeframe">Timeframe (identified from X-axis)</label>
-              <select id="chartTimeframe" required>
-                <option value="">Select timeframe</option>
-                <option>MN1</option><option>W1</option><option>D1</option><option>H4</option>
-                <option>H1</option><option>M30</option><option>M15</option><option>M5</option><option>M1</option>
-              </select>
-            </div>
-            <div class="field"><label for="currentPrice">Current price</label><input id="currentPrice" type="number" step="any" inputmode="decimal" required></div>
-            <div class="field"><label for="candleOpen">Last closed · Open</label><input id="candleOpen" type="number" step="any" inputmode="decimal" required></div>
-            <div class="field"><label for="candleHigh">High</label><input id="candleHigh" type="number" step="any" inputmode="decimal" required></div>
-            <div class="field"><label for="candleLow">Low</label><input id="candleLow" type="number" step="any" inputmode="decimal" required></div>
-            <div class="field"><label for="candleClose">Close</label><input id="candleClose" type="number" step="any" inputmode="decimal" required></div>
-            <p class="analysis-note">Enter the last fully closed candle. A doji threshold is not specified in the lessons, so only an exactly equal Open and Close is automatically labeled doji; near-equal candles need visual judgment. No entry, stop-loss, or take-profit signal is generated by this worksheet.</p>
-            <p class="analysis-error" id="analysisError" role="alert"></p>
-            <button class="button button-primary" type="submit">Build candle reading</button>
-          </form>
-          <div class="analysis-report" id="analysisReport" aria-live="polite" hidden>
-            <h3>Chart reading</h3>
-            <div id="analysisOutput"></div>
-          </div>
-        </section>
-
         <section class="history" aria-labelledby="historyTitle">
           <div class="section-heading">
             <div><h2 id="historyTitle">Recent uploads</h2><p>Your chart images, saved locally on this device</p></div>
@@ -417,7 +290,7 @@
           <div class="history-list" id="historyList"><div class="empty-state">Your uploaded charts will appear here.</div></div>
         </section>
       </main>
-      <footer>A Gill Development product.<br>All image analysis uses built-in browser rules; images are not sent to an AI or external API. Visual scans can misread charts and are educational, not financial advice or guaranteed predictions.</footer>
+      <footer>A Gill Development product.<br>All image analysis uses built-in JavaScript rules; images are not sent to an AI or external API. Visual scans can misread charts and are not guaranteed predictions or executed trades.</footer>
     </div>
 
     <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
@@ -432,19 +305,9 @@
         const cameraInput = document.getElementById("cameraInput");
         const dropzone = document.getElementById("dropzone");
         const preview = document.getElementById("preview");
-        const cropImage = document.getElementById("cropImage");
-        const cropOverlay = document.getElementById("cropOverlay");
-        const cropSelection = document.getElementById("cropSelection");
-        const cropButton = document.getElementById("cropButton");
-        const cropEditor = document.getElementById("cropEditor");
-        const cropResult = document.getElementById("cropResult");
         const previewImage = document.getElementById("previewImage");
         const status = document.getElementById("status");
         let currentObjectUrl = null;
-        let croppedObjectUrl = null;
-        let currentFile = null;
-        let selection = null;
-        let dragStart = null;
         let database;
 
         function openDatabase() {
@@ -533,7 +396,7 @@
 
         function scanChartImage() {
           if (!previewImage.complete || !previewImage.naturalWidth || !previewImage.naturalHeight) {
-            throw new Error("Wait for the chart crop to finish loading, then scan it again.");
+            throw new Error("Wait for the uploaded chart image to finish loading.");
           }
           const maxWidth = 1600;
           const scale = Math.min(1, maxWidth / previewImage.naturalWidth, maxWidth / previewImage.naturalHeight);
@@ -741,35 +604,6 @@
           return { highs, lows };
         }
 
-        function drawImageLevels(scan, levels) {
-          const overlay = document.getElementById("analysisOverlay");
-          const originalWidth = previewImage.naturalWidth;
-          const originalHeight = previewImage.naturalHeight;
-          overlay.replaceChildren();
-          overlay.setAttribute("viewBox", `0 0 ${originalWidth} ${originalHeight}`);
-          if (!levels) return;
-          const svgNamespace = "http://www.w3.org/2000/svg";
-          for (const level of levels) {
-            const y = level.y / scan.scale;
-            const line = document.createElementNS(svgNamespace, "line");
-            line.setAttribute("x1", String(scan.xStart / scan.scale));
-            line.setAttribute("x2", String(scan.xEnd / scan.scale));
-            line.setAttribute("y1", String(y));
-            line.setAttribute("y2", String(y));
-            line.setAttribute("stroke", level.color);
-            line.setAttribute("stroke-width", String(Math.max(2, originalWidth / 500)));
-            line.setAttribute("stroke-dasharray", "10 6");
-            overlay.append(line);
-            const label = document.createElementNS(svgNamespace, "text");
-            label.setAttribute("x", String((scan.xEnd - 8) / scan.scale));
-            label.setAttribute("y", String(Math.max(16, y - 7)));
-            label.setAttribute("fill", level.color);
-            label.setAttribute("text-anchor", "end");
-            label.textContent = level.label;
-            overlay.append(label);
-          }
-        }
-
         function renderImageScan(scan) {
           const output = document.getElementById("imageAnalysisOutput");
           const report = document.getElementById("imageAnalysisReport");
@@ -783,8 +617,9 @@
           overlay.replaceChildren();
 
           if (scan.candles.length < 12) {
-            addLine(`Only ${scan.candles.length} clear candle-like shapes were detected. Use a tighter crop with visible candles and try again.`);
+            addLine(`Only ${scan.candles.length} clear candle-like shapes were detected. Upload a chart image with larger, clearly visible candles.`);
             addLine("This local scan works best with distinct red/green or white/black candles on a contrasting chart background.");
+            addLine("TRADE DECISION: NO TRADE — there is not enough readable candle data to assess structure.");
             report.hidden = false;
             return;
           }
@@ -808,11 +643,8 @@
           const lastClosed = closedCandles[closedCandles.length - 1];
           const priorHigh = swings.highs.filter(item => item.index < closedCandles.length - 3).at(-1);
           const priorLow = swings.lows.filter(item => item.index < closedCandles.length - 3).at(-1);
-          const priorCandles = closedCandles.slice(-3, -1);
-          const bosUp = structure === "Uptrend" && lastClosed.bullish && priorHigh && lastClosed.close < priorHigh.y;
-          const bosDown = structure === "Downtrend" && !lastClosed.bullish && priorLow && lastClosed.close > priorLow.y;
-          const correctionUp = priorCandles.length === 2 && priorCandles.every(candle => !candle.bullish);
-          const correctionDown = priorCandles.length === 2 && priorCandles.every(candle => candle.bullish);
+          const bosUp = structure === "Uptrend" && priorHigh && lastClosed.close < priorHigh.y;
+          const bosDown = structure === "Downtrend" && priorLow && lastClosed.close > priorLow.y;
           addLine(`Detected ${scan.candles.length} candle-like shapes; ${closedCandles.length} treated as closed and the rightmost candle excluded as possibly still forming.`);
           addLine(`Estimated chart structure: ${structure}. ${swings.highs.length} swing highs and ${swings.lows.length} swing lows were detected.`);
           addLine(`Last closed-candle BOS: ${bosUp ? "upward close beyond the prior swing high" : bosDown ? "downward close beyond the prior swing low" : "not confirmed"}.`);
@@ -820,49 +652,12 @@
           const currentPriceText = scan.currentPriceY === null
             ? "not confidently detected"
             : `detected at approximately ${Math.round((scan.currentPriceY - scan.yStart) * 100 / (scan.yEnd - scan.yStart))}% down the visible price scale`;
-          addLine(`Current-price line: ${currentPriceText}. Trade levels are drawn in image coordinates, not numeric prices.`);
-
-          let levels = scan.currentPriceY === null
-            ? []
-            : [{ label: "CURRENT PRICE", y: scan.currentPriceY, color: "#e8edf0" }];
-          if (structure === "Range / unclear") {
-            addLine("NO TRADE: the scan could not confirm four rising or falling swing highs and lows.");
-          } else if (scan.xAxisMarks < 3 || scan.yAxisMarks < 3) {
-            addLine("NO TRADE: the X/Y-axis markings are not clear enough to check chart order and the visible price scale.");
-          } else if (scan.currentPriceY === null) {
-            addLine("NO TRADE: the dashed current-price line could not be separated confidently from candle and grid pixels.");
-          } else if (Math.abs(scan.currentPriceY - lastClosed.close) > scan.height * 0.1) {
-            addLine("NO TRADE: the detected current-price line is too far from the last closed candle to confirm a current setup.");
-          } else if (!bosUp && !bosDown) {
-            addLine("NO TRADE: no close-confirmed BOS was detected after the correction.");
-          } else if (bosUp && !correctionUp || bosDown && !correctionDown) {
-            addLine("NO TRADE: the two candles before the BOS do not show the correction required by the chart rules.");
-          } else {
-            const isLong = bosUp;
-            const entry = lastClosed.close;
-            const stopSwing = (isLong ? swings.lows : swings.highs).filter(item => item.index < closedCandles.length - 3).at(-1);
-            const stopBuffer = Math.max(2, scan.height * 0.003);
-            const stop = stopSwing
-              ? stopSwing.y + (isLong ? stopBuffer : -stopBuffer)
-              : null;
-            const risk = stop === null ? 0 : isLong ? stop - entry : entry - stop;
-            const target = isLong ? entry - 2 * risk : entry + 2 * risk;
-            const validBounds = target >= scan.yStart && target <= scan.yEnd && stop >= scan.yStart && stop <= scan.yEnd;
-            if (!stopSwing || risk <= 0 || !validBounds) {
-              addLine("NO TRADE: the scan could not place a valid stop and illustrative 1:2 target inside the visible chart.");
-            } else {
-              const direction = isLong ? "BUY" : "SELL";
-              levels.push(
-                { label: `ENTRY · ${direction}`, y: entry, color: "#19d8e8" },
-                { label: "SL", y: stop, color: "#ff7666" },
-                { label: "TP · 1:2 projection", y: target, color: "#68e39b" }
-              );
-              addLine(`PROVISIONAL ${direction}: entry at the estimated close of the BOS candle; SL beyond the latest detected opposite swing; TP is an illustrative 1:2 risk projection, not a detected future swing.`);
-              addLine("The X-axis confirms left-to-right candle order and the Y-axis sets relative price position. Numeric axis labels are not OCR'd; verify actual prices and higher-timeframe bias yourself.");
-            }
-          }
-          addLine("No AI or external API is used. This deterministic image scan cannot confirm higher-timeframe structure from a single chart.");
-          drawImageLevels(scan, levels.length ? levels : null);
+          addLine(`Current-price line: ${currentPriceText}. Numeric axis labels and timeframe are not read.`);
+          const reason = structure === "Range / unclear"
+            ? "the scan did not confirm a directional swing structure"
+            : "the higher-timeframe bias cannot be confirmed from this single chart image";
+          addLine(`TRADE DECISION: NO TRADE — ${reason}. The required higher-timeframe check and numeric price levels are unavailable, so no entry, stop-loss, or take-profit is issued.`);
+          addLine("This image scan is a limited JavaScript heuristic, not a trained chart-recognition model. Verify the detected candles and swings against the image.");
           report.hidden = false;
         }
 
@@ -879,27 +674,40 @@
           }
 
           if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
-          if (croppedObjectUrl) URL.revokeObjectURL(croppedObjectUrl);
-          croppedObjectUrl = null;
-          selection = null;
-          cropSelection.hidden = true;
-          cropButton.disabled = true;
-          cropEditor.hidden = false;
-          cropResult.classList.remove("visible");
           document.getElementById("imageAnalysisReport").hidden = true;
           document.getElementById("analysisOverlay").replaceChildren();
-          document.getElementById("previewTitle").textContent = "Frame the chart";
-          document.getElementById("cropInstructions").hidden = false;
-          currentFile = file;
+          document.getElementById("imageAnalysisOutput").replaceChildren();
+          document.getElementById("previewTitle").textContent = "Chart analysis";
           currentObjectUrl = URL.createObjectURL(file);
           document.getElementById("previewName").textContent = file.name;
           const dimensions = document.getElementById("imageDimensions");
           dimensions.textContent = formatSize(file.size);
-          cropImage.onload = () => {
-            dimensions.textContent = `${cropImage.naturalWidth} × ${cropImage.naturalHeight} · ${formatSize(file.size)}`;
+          const imageUrl = currentObjectUrl;
+          previewImage.onload = () => {
+            if (currentObjectUrl !== imageUrl) return;
+            dimensions.textContent = `${previewImage.naturalWidth} × ${previewImage.naturalHeight} · ${formatSize(file.size)}`;
+            const report = document.getElementById("imageAnalysisReport");
+            const output = document.getElementById("imageAnalysisOutput");
+            const loading = document.createElement("p");
+            loading.textContent = "Analyzing the uploaded chart…";
+            output.replaceChildren(loading);
+            report.hidden = false;
+            requestAnimationFrame(() => {
+              if (currentObjectUrl !== imageUrl) return;
+              try {
+                renderImageScan(scanChartImage());
+              } catch (error) {
+                output.replaceChildren();
+                const message = document.createElement("p");
+                message.textContent = error instanceof Error ? error.message : "The chart image could not be analyzed.";
+                output.append(message);
+              }
+            });
           };
-          cropImage.onerror = () => showError("This image could not be opened. Choose a different image file.");
-          cropImage.src = currentObjectUrl;
+          previewImage.onerror = () => {
+            if (currentObjectUrl === imageUrl) showError("This image could not be opened. Choose a different image file.");
+          };
+          previewImage.src = imageUrl;
           dropzone.hidden = true;
           preview.classList.add("visible");
 
@@ -917,124 +725,9 @@
           }
         }
 
-        function setSelection(start, end) {
-          const left = Math.min(start.x, end.x);
-          const top = Math.min(start.y, end.y);
-          const width = Math.abs(end.x - start.x);
-          const height = Math.abs(end.y - start.y);
-          selection = { x: left, y: top, width, height };
-          cropSelection.hidden = false;
-          cropSelection.style.left = `${left * 100}%`;
-          cropSelection.style.top = `${top * 100}%`;
-          cropSelection.style.width = `${width * 100}%`;
-          cropSelection.style.height = `${height * 100}%`;
-        }
-
-        function getImagePoint(event) {
-          const bounds = cropOverlay.getBoundingClientRect();
-          if (!bounds.width || !bounds.height) return { x: 0, y: 0 };
-          return {
-            x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
-            y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height))
-          };
-        }
-
-        cropOverlay.addEventListener("pointerdown", event => {
-          if (!cropImage.naturalWidth) return;
-          event.preventDefault();
-          cropOverlay.setPointerCapture(event.pointerId);
-          dragStart = getImagePoint(event);
-          setSelection(dragStart, dragStart);
-          cropButton.disabled = true;
-          status.textContent = "";
-        });
-        cropOverlay.addEventListener("pointermove", event => {
-          if (dragStart) setSelection(dragStart, getImagePoint(event));
-        });
-        cropOverlay.addEventListener("pointerup", event => {
-          if (!dragStart) return;
-          setSelection(dragStart, getImagePoint(event));
-          dragStart = null;
-          if (selection.width < 0.02 || selection.height < 0.02) {
-            cropSelection.hidden = true;
-            selection = null;
-            showError("Drag a larger area around the chart to crop it.");
-            return;
-          }
-          cropButton.disabled = false;
-        });
-        cropOverlay.addEventListener("pointercancel", () => { dragStart = null; });
-
-        cropButton.addEventListener("click", async () => {
-          if (!selection || !cropImage.naturalWidth || !cropImage.naturalHeight) return;
-          cropButton.disabled = true;
-          status.textContent = "";
-          const x = Math.round(selection.x * cropImage.naturalWidth);
-          const y = Math.round(selection.y * cropImage.naturalHeight);
-          const width = Math.max(1, Math.round(selection.width * cropImage.naturalWidth));
-          const height = Math.max(1, Math.round(selection.height * cropImage.naturalHeight));
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.min(width, cropImage.naturalWidth - x);
-          canvas.height = Math.min(height, cropImage.naturalHeight - y);
-          const context = canvas.getContext("2d");
-          if (!context) {
-            cropButton.disabled = false;
-            showError("This browser could not prepare the chart crop.");
-            return;
-          }
-          context.drawImage(cropImage, x, y, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-          if (!blob) {
-            cropButton.disabled = false;
-            showError("This browser could not create the chart crop. Try selecting a smaller area.");
-            return;
-          }
-
-          if (croppedObjectUrl) URL.revokeObjectURL(croppedObjectUrl);
-          croppedObjectUrl = URL.createObjectURL(blob);
-          previewImage.src = croppedObjectUrl;
-          document.getElementById("imageDimensions").textContent = `${canvas.width} × ${canvas.height} · ${formatSize(blob.size)}`;
-          document.getElementById("previewTitle").textContent = "Focused chart";
-          document.getElementById("cropInstructions").hidden = true;
-          cropEditor.hidden = true;
-          cropResult.classList.add("visible");
-
-          try {
-            await transaction("readwrite", store => store.put({
-              id: crypto.randomUUID(),
-              name: `Chart crop · ${document.getElementById("previewName").textContent}`,
-              size: blob.size,
-              createdAt: Date.now(),
-              blob
-            }));
-            await renderHistory();
-          } catch (error) {
-            showError("The chart crop is ready, but this browser could not save it locally.");
-          }
-        });
-
         document.getElementById("browseButton").addEventListener("click", () => input.click());
         document.getElementById("cameraButton").addEventListener("click", () => cameraInput.click());
         document.getElementById("changeButton").addEventListener("click", () => input.click());
-        document.getElementById("recropButton").addEventListener("click", () => {
-          cropResult.classList.remove("visible");
-          document.getElementById("imageAnalysisReport").hidden = true;
-          document.getElementById("analysisOverlay").replaceChildren();
-          cropEditor.hidden = false;
-          document.getElementById("cropInstructions").hidden = false;
-          document.getElementById("previewTitle").textContent = "Adjust the chart crop";
-          document.getElementById("imageDimensions").textContent = `${cropImage.naturalWidth} × ${cropImage.naturalHeight} · ${formatSize(currentFile.size)}`;
-          cropButton.disabled = !selection;
-        });
-        document.getElementById("scanChartButton").addEventListener("click", () => {
-          status.textContent = "";
-          try {
-            const scan = scanChartImage();
-            renderImageScan(scan);
-          } catch (error) {
-            showError(error instanceof Error ? error.message : "The chart image could not be scanned.");
-          }
-        });
         input.addEventListener("change", event => handleFile(event.target.files[0]));
         cameraInput.addEventListener("change", event => handleFile(event.target.files[0]));
         for (const picker of [input, cameraInput]) {
@@ -1060,6 +753,7 @@
           }
         });
 
+        if (document.getElementById("analysisForm")) {
         document.getElementById("analysisForm").addEventListener("submit", event => {
           event.preventDefault();
           const errorMessage = document.getElementById("analysisError");
@@ -1119,7 +813,9 @@
           }
           report.hidden = false;
         });
+        }
 
+        if (document.getElementById("structureForm")) {
         document.getElementById("structureForm").addEventListener("submit", event => {
           event.preventDefault();
           const errorMessage = document.getElementById("structureError");
@@ -1240,6 +936,7 @@
           }
           report.hidden = false;
         });
+        }
 
         openDatabase().then(db => {
           database = db;
