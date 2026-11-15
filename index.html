@@ -296,6 +296,7 @@
     <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
     <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
 
+    <script src="chart-rules.js"></script>
     <script>
       (() => {
         const DB_NAME = "mtv-gold-chart-workspace";
@@ -593,18 +594,10 @@
         }
 
         function findImageSwings(candles) {
-          const highs = [];
-          const lows = [];
-          for (let index = 2; index < candles.length - 2; index += 1) {
-            const candle = candles[index];
-            const neighbors = candles.slice(index - 2, index).concat(candles.slice(index + 1, index + 3));
-            if (neighbors.every(item => candle.top < item.top)) highs.push({ index, y: candle.top });
-            if (neighbors.every(item => candle.bottom > item.bottom)) lows.push({ index, y: candle.bottom });
-          }
-          return { highs, lows };
+          return GillChartRules.findSwings(candles);
         }
 
-        function renderImageScan(scan) {
+        async function renderImageScan(scan) {
           const output = document.getElementById("imageAnalysisOutput");
           const report = document.getElementById("imageAnalysisReport");
           const addLine = text => {
@@ -628,35 +621,32 @@
           const swings = findImageSwings(closedCandles);
           scan.highs = swings.highs;
           scan.lows = swings.lows;
-          const lastFourHighs = swings.highs.slice(-4);
-          const lastFourLows = swings.lows.slice(-4);
-          let structure = "Range / unclear";
-          if (lastFourHighs.length === 4 && lastFourLows.length === 4) {
-            const risingHighs = lastFourHighs.every((item, index) => index === 0 || item.y < lastFourHighs[index - 1].y);
-            const risingLows = lastFourLows.every((item, index) => index === 0 || item.y < lastFourLows[index - 1].y);
-            const fallingHighs = lastFourHighs.every((item, index) => index === 0 || item.y > lastFourHighs[index - 1].y);
-            const fallingLows = lastFourLows.every((item, index) => index === 0 || item.y > lastFourLows[index - 1].y);
-            if (risingHighs && risingLows) structure = "Uptrend";
-            else if (fallingHighs && fallingLows) structure = "Downtrend";
-          }
-
-          const lastClosed = closedCandles[closedCandles.length - 1];
-          const priorHigh = swings.highs.filter(item => item.index < closedCandles.length - 3).at(-1);
-          const priorLow = swings.lows.filter(item => item.index < closedCandles.length - 3).at(-1);
-          const bosUp = structure === "Uptrend" && priorHigh && lastClosed.close < priorHigh.y;
-          const bosDown = structure === "Downtrend" && priorLow && lastClosed.close > priorLow.y;
+          const structure = GillChartRules.classifyStructure(swings);
+          const breaks = GillChartRules.detectBreaks(structure, scan.candles, swings);
+          const axes = await GillChartRules.readAxes(previewImage, scan);
+          const formatPrice = value => value === null || !Number.isFinite(value)
+            ? "unavailable"
+            : new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 }).format(value);
           addLine(`Detected ${scan.candles.length} candle-like shapes; ${closedCandles.length} treated as closed and the rightmost candle excluded as possibly still forming.`);
           addLine(`Estimated chart structure: ${structure}. ${swings.highs.length} swing highs and ${swings.lows.length} swing lows were detected.`);
-          addLine(`Last closed-candle BOS: ${bosUp ? "upward close beyond the prior swing high" : bosDown ? "downward close beyond the prior swing low" : "not confirmed"}.`);
-          addLine(`X-axis: ${scan.xAxisMarks} visible tick/label groups; Y-axis: ${scan.yAxisMarks} visible price-label groups. Axis text is used only as image layout, not OCR'd into prices or timeframe.`);
-          const currentPriceText = scan.currentPriceY === null
-            ? "not confidently detected"
-            : `detected at approximately ${Math.round((scan.currentPriceY - scan.yStart) * 100 / (scan.yEnd - scan.yStart))}% down the visible price scale`;
-          addLine(`Current-price line: ${currentPriceText}. Numeric axis labels and timeframe are not read.`);
+          addLine(`Last closed-candle BOS: ${breaks.bos}. CHoCH: ${breaks.choch}.`);
+          addLine(`Detected X-axis tick groups: ${scan.xAxisMarks}; detected Y-axis label groups: ${scan.yAxisMarks}. Local text recognition is used when this browser supports it.`);
+          addLine(`Timeframe read from X-axis: ${axes.timeframe || "unavailable"}.`);
+          addLine(`Current price read from the price line and Y-axis labels: ${formatPrice(axes.currentPrice)}.`);
+          if (axes.lastCandle) {
+            addLine(`Last closed candle OHLC: O ${formatPrice(axes.lastCandle.open)}, H ${formatPrice(axes.lastCandle.high)}, L ${formatPrice(axes.lastCandle.low)}, C ${formatPrice(axes.lastCandle.close)}.`);
+          } else {
+            addLine("Last closed candle OHLC prices: unavailable because the Y-axis labels could not be read.");
+          }
+          const highPrices = axes.swingHighPrices.slice(-4).map(formatPrice).join(", ");
+          const lowPrices = axes.swingLowPrices.slice(-4).map(formatPrice).join(", ");
+          addLine(`Last detected swing highs (oldest to newest): ${highPrices || "unavailable"}.`);
+          addLine(`Last detected swing lows (oldest to newest): ${lowPrices || "unavailable"}.`);
+          if (axes.message) addLine(axes.message);
           const reason = structure === "Range / unclear"
             ? "the scan did not confirm a directional swing structure"
             : "the higher-timeframe bias cannot be confirmed from this single chart image";
-          addLine(`TRADE DECISION: NO TRADE — ${reason}. The required higher-timeframe check and numeric price levels are unavailable, so no entry, stop-loss, or take-profit is issued.`);
+          addLine(`TRADE DECISION: NO TRADE — ${reason}. A single image cannot confirm the required higher-timeframe structure.`);
           addLine("This image scan is a limited JavaScript heuristic, not a trained chart-recognition model. Verify the detected candles and swings against the image.");
           report.hidden = false;
         }
@@ -692,10 +682,10 @@
             loading.textContent = "Analyzing the uploaded chart…";
             output.replaceChildren(loading);
             report.hidden = false;
-            requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
               if (currentObjectUrl !== imageUrl) return;
               try {
-                renderImageScan(scanChartImage());
+                await renderImageScan(scanChartImage());
               } catch (error) {
                 output.replaceChildren();
                 const message = document.createElement("p");
