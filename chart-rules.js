@@ -12,6 +12,7 @@
     { name: "W1", minutes: 10080 },
     { name: "MN1", minutes: 43200 }
   ];
+  const TIMEFRAME_RANK = new Map(TIMEFRAMES.map((timeframe, index) => [timeframe.name, index]));
 
   function findSwings(candles) {
     const highs = [];
@@ -42,18 +43,23 @@
   function detectBreaks(structure, candles, swings) {
     const closedCandles = candles.slice(0, -1);
     const lastClosed = closedCandles.at(-1);
-    if (!lastClosed) return { bos: "Not confirmed", choch: "Not assessed" };
+    if (!lastClosed) return { bos: "Not confirmed", choch: "Not assessed", correctionConfirmed: false };
 
     const priorHigh = swings.highs.filter(point => point.index < closedCandles.length - 3).at(-1);
     const priorLow = swings.lows.filter(point => point.index < closedCandles.length - 3).at(-1);
     const bosUp = structure === "Uptrend" && priorHigh && lastClosed.close < priorHigh.y;
     const bosDown = structure === "Downtrend" && priorLow && lastClosed.close > priorLow.y;
+    const correctionAfterHigh = bosUp && swings.lows.some(point =>
+      point.index > priorHigh.index && point.index < closedCandles.length - 1 && point.y > priorHigh.y);
+    const correctionAfterLow = bosDown && swings.highs.some(point =>
+      point.index > priorLow.index && point.index < closedCandles.length - 1 && point.y < priorLow.y);
     const chochDown = structure === "Uptrend" && priorLow && lastClosed.close > priorLow.y;
     const chochUp = structure === "Downtrend" && priorHigh && lastClosed.close < priorHigh.y;
     return {
       bos: bosUp ? "Upward close beyond the prior swing high"
         : bosDown ? "Downward close beyond the prior swing low"
           : "Not confirmed",
+      correctionConfirmed: Boolean(correctionAfterHigh || correctionAfterLow),
       choch: chochDown ? "Possible downward change of character"
         : chochUp ? "Possible upward change of character"
           : "Not confirmed"
@@ -116,6 +122,69 @@
     for (const estimate of estimates) counts.set(estimate, (counts.get(estimate) || 0) + 1);
     const [timeframe, votes] = [...counts].sort((a, b) => b[1] - a[1])[0];
     return votes >= 2 ? timeframe : null;
+  }
+
+  function buildSignal({ chartAxes, higherAxes, chartStructure, higherStructure, chartBreaks }) {
+    const noTrade = reason => ({ direction: "NO TRADE", reason });
+    const chartRank = TIMEFRAME_RANK.get(chartAxes.timeframe);
+    const higherRank = TIMEFRAME_RANK.get(higherAxes.timeframe);
+    if (chartRank === undefined || higherRank === undefined) {
+      return noTrade("The chart and higher-timeframe periods could not both be read from their time axes.");
+    }
+    if (higherRank <= chartRank) {
+      return noTrade("The second chart is not a confirmed higher timeframe than the chart being traded.");
+    }
+    if (chartStructure !== higherStructure || !["Uptrend", "Downtrend"].includes(chartStructure)) {
+      return noTrade("The two timeframes do not show the same clear directional swing structure.");
+    }
+
+    const direction = chartStructure === "Uptrend" ? "BUY" : "SELL";
+    const confirmedBreak = direction === "BUY"
+      ? chartBreaks.bos.startsWith("Upward")
+      : chartBreaks.bos.startsWith("Downward");
+    if (!confirmedBreak) {
+      return noTrade(`There is no confirmed closed-candle BOS in the ${direction} direction.`);
+    }
+    if (!chartBreaks.correctionConfirmed) {
+      return noTrade("A corrective swing before the confirming BOS was not detected.");
+    }
+
+    const entry = chartAxes.currentPrice;
+    if (!Number.isFinite(entry)) {
+      return noTrade("The current price could not be reliably mapped from the chart's price line and axis labels.");
+    }
+    const highs = chartAxes.swingHighPrices.filter(Number.isFinite);
+    const lows = chartAxes.swingLowPrices.filter(Number.isFinite);
+    const stopCandidates = direction === "BUY"
+      ? lows.filter(price => price < entry)
+      : highs.filter(price => price > entry);
+    const targetCandidates = direction === "BUY"
+      ? highs.filter(price => price > entry)
+      : lows.filter(price => price < entry);
+    const stopLoss = direction === "BUY"
+      ? Math.max(...stopCandidates)
+      : Math.min(...stopCandidates);
+    const takeProfit = direction === "BUY"
+      ? Math.min(...targetCandidates)
+      : Math.max(...targetCandidates);
+    if (!Number.isFinite(stopLoss) || !Number.isFinite(takeProfit)) {
+      return noTrade("A valid visible swing level for both the stop loss and take profit could not be identified.");
+    }
+
+    const risk = Math.abs(entry - stopLoss);
+    const reward = Math.abs(takeProfit - entry);
+    const riskReward = reward / risk;
+    if (!Number.isFinite(risk) || !Number.isFinite(reward) || !risk || !reward || !Number.isFinite(riskReward)) {
+      return noTrade("The detected entry, stop loss, and take profit do not form a valid price setup.");
+    }
+    return {
+      direction,
+      entry,
+      stopLoss,
+      takeProfit,
+      riskReward,
+      reason: `Both timeframes show ${chartStructure.toLowerCase()} structure; a corrective swing and confirming closed-candle BOS are detected on the chart timeframe.`
+    };
   }
 
   async function readAxes(image, scan) {
@@ -197,6 +266,7 @@
     findSwings,
     classifyStructure,
     detectBreaks,
-    readAxes
+    readAxes,
+    buildSignal
   });
 })();
